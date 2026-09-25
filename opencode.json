@@ -1,0 +1,133 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openrouter/google/gemini-3.8-flash",
+  "providers": {
+    "openrouter": {
+      "env": ["OPENROUTER_API_KEY"],
+      "apiKey": "{env:OPENROUTER_API_KEY}",
+      "settings": {
+        "baseURL": "https://openrouter.ai/api/v1"
+      },
+      "models": {
+        "google/gemini-3.8-flash": {
+          "name": "Gemini 3.8 Flash (Primary - Fast)",
+          "cost": {
+            "input": 0.6,
+            "output": 1.6
+          },
+          "capabilities": {
+            "tools": true,
+            "input": ["text", "image"],
+            "output": ["text", "json"]
+          }
+        },
+        "google/gemini-3.7-flash": {
+          "name": "Gemini 3.7 Flash (Primary Backup)",
+          "cost": {
+            "input": 0.75,
+            "output": 2.4
+          }
+        },
+        "google/gemini-3.6-flash": {
+          "name": "Gemini 3.6 Flash (Backup)",
+          "cost": {
+            "input": 0.2,
+            "output": 1.5
+          }
+        },
+        "google/gemini-3-flash": {
+          "name": "Gemini 3 Flash (Backup)",
+          "cost": {
+            "input": 0.25,
+            "output": 1.25
+          }
+        },
+        "google/gemini-3.5-flash-lite": {
+          "name": "Gemini 3.5 Flash Lite (Budget)",
+          "cost": {
+            "input": 0.15,
+            "output": 0.4
+          }
+        },
+        "google/gemini-3.1-flash-lite": {
+          "name": "Gemini 3.1 Flash Lite (Cheapest)",
+          "cost": {
+            "input": 0.08,
+            "output": 0.24
+          }
+        },
+        "google/gemma-4-31b": {
+          "name": "Gemma 4 31B (Mid-tier)",
+          "cost": {
+            "input": 0.3,
+            "output": 0.9
+          }
+        },
+        "google/gemma-4-26b": {
+          "name": "Gemma 4 26B (Budget)",
+          "cost": {
+            "input": 0.2,
+            "output": 0.5
+          }
+        },
+        "lmstudio local": {
+          "name": "Local LM Studio (Offline Fallback)",
+          "package": "@opencode/ai/providers/openai-compatible",
+          "settings": {
+            "baseURL": "http://127.0.0.1:1234/v1"
+          },
+          "models": {
+            "default": {
+              "name": "LM Studio Local (Last Resort)",
+              "capabilities": {
+                "tools": false
+              },
+              "cost": {
+                "input": 0,
+                "output": 0
+              },
+              "limit": {
+                "context": 8192,
+                "output": 2048
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "adk-docs-mcp": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "--from",
+        "mcpdoc",
+        "--with",
+        "mcp<2",
+        "mcpdoc",
+        "--urls",
+        "AgentDevelopmentKit:https://adk.dev/llms.txt",
+        "--transport",
+        "stdio"
+      ],
+      "enabled": true
+    },
+    "a2a-docs-mcp": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "--from",
+        "mcpdoc",
+        "--with",
+        "mcp<2",
+        "mcpdoc",
+        "--urls",
+        "A2A:https://a2a-protocol.org/llms.txt",
+        "--transport",
+        "stdio"
+      ],
+      "enabled": true
+    }
+  }
+}
