@@ -140,14 +140,14 @@
 **Independent Test**: Create versions `1.0.0` and `1.1.0`, point `production` tag to `1.0.0`, query `GET .../tags/production` and `/resolve?tag=production`, move tag to `1.1.0`, and verify resolution updates immediately.
 
 ### Tests for User Stories 4 & 6
-- [ ] T041 [P] [US4, US6] Contract test for tag management and `/resolve` endpoints in `tests/contract/test_tags_and_resolve.py`
+- [x] T041 [P] [US4, US6] Contract test for tag management and `/resolve` endpoints in `tests/contract/test_tags_and_resolve.py`
 
 ### Implementation for User Stories 4 & 6
-- [ ] T042 [US4, US6] Implement tag mutation and resolution endpoints in `src/open_skill_registry/server/routes/skills.py`:
+- [x] T042 [US4, US6] Implement tag mutation and resolution endpoints in `src/open_skill_registry/server/routes/skills.py`:
   - `PUT /api/v1/skills/{namespace}/{slug}/tags/{tag}` (assign tag to version)
   - `GET /api/v1/skills/{namespace}/{slug}/tags/{tag}` (shortcut resolution returning version detail)
   - `GET /api/v1/skills/{namespace}/{slug}/resolve` (deterministic lookup by hash, version, or tag)
-- [ ] T043 [US4] Implement `osr tag` command in `src/open_skill_registry/cli/commands/tag.py` for CLI channel promotion
+- [x] T043 [US4] Implement `osr tag` command in `src/open_skill_registry/cli/commands/tag.py` for CLI channel promotion
 
 **Checkpoint**: Release channels and deterministic resolution endpoints operate consistently.
 
