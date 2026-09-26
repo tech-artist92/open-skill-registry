@@ -106,20 +106,64 @@ async def test_async_publish_duplicate(async_client):
         await async_client.publish(file_data=b"duplicate", namespace="public", slug="myskill", version="1.0.0")
 
 @pytest.mark.asyncio
+async def test_async_publish_bad_request(async_client):
+    with pytest.raises(ValueError):
+        await async_client.publish(file_data=b"bad request", namespace="public", slug="myskill", version="1.0.0")
+
+@pytest.mark.asyncio
 async def test_async_auth_error(mock_transport):
     client = AsyncSkillRegistryClient(api_key="bad_key", transport=mock_transport, base_url="http://testserver")
     with pytest.raises(AuthenticationError):
         await client.list_skills()
 
+@pytest.mark.asyncio
+async def test_async_context_manager(mock_transport):
+    async with AsyncSkillRegistryClient(transport=mock_transport, base_url="http://testserver") as client:
+        res = await client.list_skills()
+        assert res == {"items": [], "total": 0}
+
 def test_sync_search(sync_client):
     res = sync_client.search(query="test")
     assert res == {"items": [], "total": 0}
+
+def test_sync_list_skills(sync_client):
+    res = sync_client.list_skills()
+    assert res == {"items": [], "total": 0}
+
+def test_sync_get_skill(sync_client):
+    res = sync_client.get_skill("public", "myskill")
+    assert res == {"name": "myskill"}
 
 def test_sync_get_skill_not_found(sync_client):
     with pytest.raises(NotFoundError):
         sync_client.get_skill("public", "noskill")
 
+def test_sync_get_version(sync_client):
+    res = sync_client.get_version("public", "myskill", "1.0.0")
+    assert res == {"version": "1.0.0"}
+
+def test_sync_get_instructions(sync_client):
+    res = sync_client.get_instructions("public", "myskill", "1.0.0")
+    assert res == "instructions text"
+
+def test_sync_get_file(sync_client):
+    res = sync_client.get_file("public", "myskill", "1.0.0", "main.py")
+    assert res == b"print('hello')"
+
+def test_sync_publish(sync_client):
+    res = sync_client.publish(file_data=b"good data", namespace="public", slug="myskill", version="1.0.0")
+    assert res == {"status": "published"}
+
+def test_sync_publish_bad_request(sync_client):
+    with pytest.raises(ValueError):
+        sync_client.publish(file_data=b"bad request", namespace="public", slug="myskill", version="1.0.0")
+
 def test_sync_auth_error(mock_transport):
     client = SkillRegistryClient(api_key="bad_key", transport=mock_transport, base_url="http://testserver")
     with pytest.raises(AuthenticationError):
         client.list_skills()
+
+def test_sync_context_manager(mock_transport):
+    with SkillRegistryClient(transport=mock_transport, base_url="http://testserver") as client:
+        res = client.list_skills()
+        assert res == {"items": [], "total": 0}

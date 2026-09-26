@@ -1,7 +1,14 @@
 import io
+import os
 from pathlib import Path
 from typing import Optional, Any, Union, Dict
+
 import httpx
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 from open_skill_registry.client.exceptions import (
     NotFoundError,
@@ -27,18 +34,23 @@ def _handle_response(response: httpx.Response, expect_json: bool = True) -> Any:
     if expect_json:
         try:
             data = response.json()
-            return data.get("data", data)
+            if isinstance(data, dict):
+                return data.get("data", data)
+            return data
         except ValueError:
             return response.text
     return response.content
 
 class AsyncSkillRegistryClient:
+    """
+    An asynchronous client for the Open Skill Registry API.
+    """
     def __init__(
         self,
         base_url: str = "http://localhost:8080",
         api_key: Optional[str] = None,
         timeout: float = 10.0,
-        transport: Optional[httpx.BaseTransport] = None
+        transport: Optional[httpx.AsyncBaseTransport] = None
     ):
         self.base_url = base_url.rstrip("/")
         headers = {}
@@ -51,17 +63,29 @@ class AsyncSkillRegistryClient:
             transport=transport
         )
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         await self._client.__aenter__()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         await self._client.__aexit__(exc_type, exc_val, exc_tb)
 
-    async def aclose(self):
+    async def aclose(self) -> None:
+        """Close the underlying HTTP client."""
         await self._client.aclose()
 
     async def search(self, query: str, limit: int = 10, namespace: Optional[str] = None) -> Any:
+        """
+        Search for skills.
+        
+        Args:
+            query: The search query string.
+            limit: Maximum number of results to return.
+            namespace: Optional namespace to filter the search.
+            
+        Returns:
+            A dictionary containing search results.
+        """
         params = {"query": query, "limit": limit}
         if namespace:
             params["namespace"] = namespace
@@ -69,6 +93,18 @@ class AsyncSkillRegistryClient:
         return _handle_response(response)
 
     async def list_skills(self, page: int = 1, size: int = 20, namespace: Optional[str] = None, sort: str = "updated") -> Any:
+        """
+        List all skills, optionally filtered by namespace.
+        
+        Args:
+            page: Page number for pagination.
+            size: Number of items per page.
+            namespace: Optional namespace filter.
+            sort: Sorting criteria.
+            
+        Returns:
+            A list of skills or pagination metadata.
+        """
         params = {"page": page, "size": size, "sort": sort}
         if namespace:
             params["namespace"] = namespace
@@ -76,18 +112,62 @@ class AsyncSkillRegistryClient:
         return _handle_response(response)
 
     async def get_skill(self, namespace: str, slug: str) -> Any:
+        """
+        Get metadata for a specific skill.
+        
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            
+        Returns:
+            Skill metadata.
+        """
         response = await self._client.get(f"/api/v1/skills/{namespace}/{slug}")
         return _handle_response(response)
 
     async def get_version(self, namespace: str, slug: str, version: str) -> Any:
+        """
+        Get metadata for a specific version of a skill.
+        
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            version: The version string.
+            
+        Returns:
+            Version metadata.
+        """
         response = await self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}")
         return _handle_response(response)
 
     async def get_instructions(self, namespace: str, slug: str, version: str) -> str:
+        """
+        Get instructions for a specific version of a skill.
+        
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            version: The version string.
+            
+        Returns:
+            Instructions as a string.
+        """
         response = await self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}/instructions")
         return _handle_response(response)
 
     async def get_file(self, namespace: str, slug: str, version: str, path: str) -> bytes:
+        """
+        Get a specific file from a skill version package.
+        
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            version: The version string.
+            path: The relative file path inside the skill package.
+            
+        Returns:
+            File content as bytes.
+        """
         response = await self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}/files/{path}")
         return _handle_response(response, expect_json=False)
 
@@ -98,8 +178,27 @@ class AsyncSkillRegistryClient:
         slug: Optional[str] = None,
         version: Optional[str] = None
     ) -> Any:
+        """
+        Publish a new skill or a new version of an existing skill.
+        
+        Args:
+            file_data: The skill package file content or path.
+            namespace: The namespace to publish to.
+            slug: The slug of the skill (optional).
+            version: The version string (optional).
+            
+        Returns:
+            Publication result metadata.
+        """
         if isinstance(file_data, str):
-            if Path(file_data).exists():
+            is_path = False
+            if "\n" not in file_data and len(file_data) < 4096:
+                try:
+                    if Path(file_data).exists():
+                        is_path = True
+                except OSError:
+                    pass
+            if is_path:
                 file_data = Path(file_data).read_bytes()
             else:
                 file_data = file_data.encode()
@@ -120,6 +219,9 @@ class AsyncSkillRegistryClient:
         return _handle_response(response)
 
 class SkillRegistryClient:
+    """
+    A synchronous client for the Open Skill Registry API.
+    """
     def __init__(
         self,
         base_url: str = "http://localhost:8080",
@@ -138,17 +240,29 @@ class SkillRegistryClient:
             transport=transport
         )
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         self._client.__enter__()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self._client.__exit__(exc_type, exc_val, exc_tb)
 
-    def close(self):
+    def close(self) -> None:
+        """Close the underlying HTTP client."""
         self._client.close()
 
     def search(self, query: str, limit: int = 10, namespace: Optional[str] = None) -> Any:
+        """
+        Search for skills.
+        
+        Args:
+            query: The search query string.
+            limit: Maximum number of results to return.
+            namespace: Optional namespace to filter the search.
+            
+        Returns:
+            A dictionary containing search results.
+        """
         params = {"query": query, "limit": limit}
         if namespace:
             params["namespace"] = namespace
@@ -156,6 +270,18 @@ class SkillRegistryClient:
         return _handle_response(response)
 
     def list_skills(self, page: int = 1, size: int = 20, namespace: Optional[str] = None, sort: str = "updated") -> Any:
+        """
+        List all skills, optionally filtered by namespace.
+        
+        Args:
+            page: Page number for pagination.
+            size: Number of items per page.
+            namespace: Optional namespace filter.
+            sort: Sorting criteria.
+            
+        Returns:
+            A list of skills or pagination metadata.
+        """
         params = {"page": page, "size": size, "sort": sort}
         if namespace:
             params["namespace"] = namespace
@@ -163,18 +289,62 @@ class SkillRegistryClient:
         return _handle_response(response)
 
     def get_skill(self, namespace: str, slug: str) -> Any:
+        """
+        Get metadata for a specific skill.
+        
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            
+        Returns:
+            Skill metadata.
+        """
         response = self._client.get(f"/api/v1/skills/{namespace}/{slug}")
         return _handle_response(response)
 
     def get_version(self, namespace: str, slug: str, version: str) -> Any:
+        """
+        Get metadata for a specific version of a skill.
+        
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            version: The version string.
+            
+        Returns:
+            Version metadata.
+        """
         response = self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}")
         return _handle_response(response)
 
     def get_instructions(self, namespace: str, slug: str, version: str) -> str:
+        """
+        Get instructions for a specific version of a skill.
+        
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            version: The version string.
+            
+        Returns:
+            Instructions as a string.
+        """
         response = self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}/instructions")
         return _handle_response(response)
 
     def get_file(self, namespace: str, slug: str, version: str, path: str) -> bytes:
+        """
+        Get a specific file from a skill version package.
+        
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            version: The version string.
+            path: The relative file path inside the skill package.
+            
+        Returns:
+            File content as bytes.
+        """
         response = self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}/files/{path}")
         return _handle_response(response, expect_json=False)
 
@@ -185,8 +355,27 @@ class SkillRegistryClient:
         slug: Optional[str] = None,
         version: Optional[str] = None
     ) -> Any:
+        """
+        Publish a new skill or a new version of an existing skill.
+        
+        Args:
+            file_data: The skill package file content or path.
+            namespace: The namespace to publish to.
+            slug: The slug of the skill (optional).
+            version: The version string (optional).
+            
+        Returns:
+            Publication result metadata.
+        """
         if isinstance(file_data, str):
-            if Path(file_data).exists():
+            is_path = False
+            if "\n" not in file_data and len(file_data) < 4096:
+                try:
+                    if Path(file_data).exists():
+                        is_path = True
+                except OSError:
+                    pass
+            if is_path:
                 file_data = Path(file_data).read_bytes()
             else:
                 file_data = file_data.encode()
