@@ -160,14 +160,14 @@
 **Independent Test**: Enable `AUTH_ENABLED=true`, verify unauthenticated search excludes `NAMESPACE_ONLY` skills, verify namespace API key can discover and read private skills, and verify 403 when publishing across namespaces.
 
 ### Tests for User Story 5
-- [ ] T044 [P] [US5] Contract test for auth middleware, namespace scoping, and API key management in `tests/contract/test_auth_and_namespaces.py`
+- [x] T044 [P] [US5] Contract test for auth middleware, namespace scoping, and API key management in `tests/contract/test_auth_and_namespaces.py`
 
 ### Implementation for User Story 5
-- [ ] T045 [US5] Implement authentication middleware in `src/open_skill_registry/server/middleware/auth.py` supporting `AUTH_ENABLED` toggle, Bearer token extraction, and bootstrap admin key via `OSR_ADMIN_KEY` env var
-- [ ] T046 [US5] Implement API key issuance, listing, and revocation routes in `src/open_skill_registry/server/routes/auth.py` (`POST /api/v1/keys`, `GET /api/v1/keys`, `DELETE /api/v1/keys/{id}`)
-- [ ] T047 [US5] Implement namespace CRUD routes in `src/open_skill_registry/server/routes/namespaces.py` (`POST`, `GET`, `GET /{slug}`, `PUT /{slug}`)
-- [ ] T048 [US5] Implement `osr login` and `osr namespace` commands in `src/open_skill_registry/cli/commands/login.py` and `src/open_skill_registry/cli/commands/namespace.py`
-- [ ] T049 [US5] Add visibility filtering clauses (`PUBLIC` vs matching namespace API key) into search and retrieval queries across `skill_service.py` and `search_service.py`
+- [x] T045 [US5] Implement authentication middleware in `src/open_skill_registry/server/middleware/auth.py` supporting `AUTH_ENABLED` toggle, Bearer token extraction, and bootstrap admin key via `OSR_ADMIN_KEY` env var
+- [x] T046 [US5] Implement API key issuance, listing, and revocation routes in `src/open_skill_registry/server/routes/auth.py` (`POST /api/v1/keys`, `GET /api/v1/keys`, `DELETE /api/v1/keys/{id}`)
+- [x] T047 [US5] Implement namespace CRUD routes in `src/open_skill_registry/server/routes/namespaces.py` (`POST`, `GET`, `GET /{slug}`, `PUT /{slug}`)
+- [x] T048 [US5] Implement `osr login` and `osr namespace` commands in `src/open_skill_registry/cli/commands/login.py` and `src/open_skill_registry/cli/commands/namespace.py`
+- [x] T049 [US5] Add visibility filtering clauses (`PUBLIC` vs matching namespace API key) into search and retrieval queries across `skill_service.py` and `search_service.py`
 
 **Checkpoint**: Enterprise governance, token scoping, and visibility security boundaries fully operational.
 
