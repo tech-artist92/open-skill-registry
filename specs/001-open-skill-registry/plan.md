@@ -26,9 +26,9 @@ Both modes share the identical core engine (`SkillService`, `SearchService`, `Em
 - Configuration: `pyyaml>=6.0.1`.
 - Cache: `redis[hiredis]>=5.0.0` (optional in embedded mode).
 - CLI: `typer>=0.12.0`, `rich>=13.7.0`, `httpx>=0.27.0`.
-- Embeddings: `fastembed>=0.3.0` (default local ONNX embedder, 0 API keys required), plus pluggable (`google-genai` / `openai` / `ollama` / `sentence-transformers` / none).
+- Embeddings & Math: `fastembed>=0.3.0` (default local ONNX embedder, 0 API keys required), `numpy>=1.24.0` (in-process vector cosine similarity), plus pluggable (`google-genai` / `openai` / `ollama` / `sentence-transformers` / none).
 
-**Storage**: PostgreSQL 16 with `pgvector` extension (single transactional store for metadata, manifests, vector embeddings, and file contents) + Redis 7 for high-speed caching in hosted mode; or user-configured DB session in embedded mode.
+**Storage**: PostgreSQL 16 with `pgvector` extension (single transactional store for metadata, manifests, vector embeddings, and file contents) + Redis 7 for high-speed caching in hosted mode; or SQLite 3 / PostgreSQL in embedded mode.
 
 **Testing**: `pytest`, `pytest-asyncio`, `testcontainers[postgres,redis]`, `respx` (for HTTP mocking), and `httpx.AsyncClient`.
 
@@ -61,9 +61,10 @@ Both modes share the identical core engine (`SkillService`, `SearchService`, `Em
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 - **Principle I: Library-First**: The core registry is implemented as an importable in-process Python library (`SkillRegistry`) completely decoupled from HTTP frameworks. The ADK adapter (`OpenSkillRegistry`) and the hosted server (`open_skill_registry.server`) both layer directly on top of this core library. **PASS**
-- **Principle II: CLI Interface**: The `osr` CLI exposes full functionality (login, search, push, pull, info, tag, yank, verify, namespace) with both human-readable table outputs and `--format json` support. **PASS**
-- **Principle III: Test-First (TDD)**: Test suites are structured across unit tests (manifest hashing, validation, library engine), integration tests (pgvector, redis caching), and contract tests (OpenAPI endpoints, ADK protocol). **PASS**
-- **Principle IV: Simplicity & YAGNI**: Direct PostgreSQL storage eliminates external object store (S3/MinIO) complexity; in-process embedded mode allows zero-ops usage; built-in FastAPI Web UI eliminates separate frontend container build pipelines for v1. **PASS**
+- **Principle II: CLI Interface & Multi-Client Protocol**: The `osr` CLI exposes full functionality (`init`, `serve`, `login`, `search`, `push`, `pull`, `info`, `tag`, `yank`, `verify`, `namespace`) with both human-readable table outputs and `--format json` support. **PASS**
+- **Principle III: Test-First (TDD)**: Test suites are structured across unit tests (manifest hashing, validation, library engine), integration tests (pgvector, sqlite in-memory, redis caching), and contract tests (OpenAPI endpoints, ADK protocol). **PASS**
+- **Principle IV: Superior Hybrid Discovery with Zero-Config Local Embeddings**: Semantic search is enabled by default via FastEmbed local ONNX runtime (`BAAI/bge-small-en-v1.5`, 384-dim, 0 API keys) blended with PostgreSQL/SQLite weighted full-text search (Name/Slug: 1.0, Description: 0.4 via `ts_rank_cd`). **PASS**
+- **Principle V: Simplicity, Transparency & YAGNI**: Dual database drivers (SQLite for zero-ops local, PostgreSQL for hosted) eliminate external object store (S3/MinIO) complexity; single unified configuration file (`osr.config.yaml`); built-in FastAPI Web UI eliminates separate frontend container build pipelines for v1. **PASS**
 
 ---
 

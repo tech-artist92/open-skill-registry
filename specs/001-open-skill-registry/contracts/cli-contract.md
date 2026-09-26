@@ -47,13 +47,17 @@ Initializes a new Open Skill Registry configuration file (`osr.config.yaml`) wit
 
 ```bash
 # Initialize local configuration in current directory
-osr init [--mode <embedded|server>] [--global]
+osr init [--mode <embedded|server>] [--output <PATH>] [--global]
 ```
+
+**Options**:
+- `--mode`: Pre-configures runtime mode for `"embedded"` (default) or `"server"`.
+- `--output`: Custom output path (defaults to `./osr.config.yaml`).
+- `--global`: Writes configuration to `~/.osr/config.yaml` for user-wide defaults.
 
 **Behaviors**:
 - Generates a fully documented `osr.config.yaml` with FastEmbed enabled locally (0 API keys required).
-- When `--global` is passed, creates `~/.osr/config.yaml`.
-- Prompts for confirmation before overwriting an existing config.
+- Prompts for confirmation before overwriting an existing config unless `--force` is provided.
 
 ---
 

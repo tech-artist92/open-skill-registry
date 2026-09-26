@@ -11,7 +11,7 @@
 
 **Purpose**: Project initialization, package scaffolding, and build tooling
 
-- [ ] T001 Initialize Python project layout with `pyproject.toml` specifying `[project]`, dependencies (`fastapi`, `uvicorn`, `sqlmodel`, `sqlalchemy[asyncio]`, `asyncpg`, `pgvector`, `fastembed>=0.3.0`, `pyyaml>=6.0.1`, `redis`, `typer`, `rich`, `httpx`, `pydantic>=2.8.0`), and optional extras (`[cli]`, `[server]`, `[all]`)
+- [ ] T001 Initialize Python project layout with `pyproject.toml` specifying `[project]`, dependencies (`fastapi`, `uvicorn`, `sqlmodel`, `sqlalchemy[asyncio]`, `asyncpg`, `aiosqlite>=0.20.0`, `pgvector`, `fastembed>=0.3.0`, `numpy>=1.24.0`, `pyyaml>=6.0.1`, `redis`, `typer`, `rich`, `httpx`, `pydantic>=2.8.0`), and optional extras (`[cli]`, `[server]`, `[all]`)
 - [ ] T002 [P] Configure development tooling: `ruff`, `mypy`, `pytest`, `pytest-asyncio`, and test configuration in `pyproject.toml`
 - [ ] T003 [P] Create local container orchestration in `docker-compose.yml` (PostgreSQL 16 with pgvector extension, Redis 7, and development server)
 - [ ] T004 [P] Create production multi-stage container build in `Dockerfile` for the registry server
@@ -58,11 +58,11 @@
 
 ### Tests for User Story 9
 - [ ] T019 [P] [US9] Unit test for manifest hashing and validation in `tests/unit/test_manifest.py` and `tests/unit/test_validator.py`
-- [ ] T020 [P] [US9] Integration test for embedded library engine `SkillRegistry` (publish, search, get, resolve) against test database in `tests/integration/test_embedded_registry.py`
+- [ ] T020 [P] [US9] Integration test for embedded library engine `SkillRegistry` across both SQLite in-memory and PostgreSQL testcontainers in `tests/integration/test_embedded_registry.py`
 
 ### Implementation for User Story 9
 - [ ] T021 [US9] Implement base storage provider contract in `src/open_skill_registry/registry/storage/base.py` defining async methods (`save_skill_version`, `get_skill_version`, `search_skills`, `resolve_version`, `tag_version`, `yank_version`)
-- [ ] T022 [US9] Implement PostgreSQL + pgvector storage backend in `src/open_skill_registry/registry/storage/pgvector.py` implementing the storage contract with SQLAlchemy async sessions
+- [ ] T022 [US9] Implement storage backends in `src/open_skill_registry/registry/storage/`: PostgreSQL + pgvector backend in `pgvector.py` and SQLite + in-process vector cosine similarity/FTS5 backend in `sqlite.py` implementing the storage contract with SQLAlchemy async sessions and aiosqlite
 - [ ] T023 [US9] Implement `SkillRegistry` and `AsyncSkillRegistry` facade in `src/open_skill_registry/registry/main.py` orchestrating storage, embeddings, manifest generation, and version resolution
 - [ ] T024 [US9] Export `SkillRegistry`, `AsyncSkillRegistry`, and `RegistryConfig` from `src/open_skill_registry/__init__.py`
 

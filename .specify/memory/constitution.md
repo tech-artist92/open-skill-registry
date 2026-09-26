@@ -11,11 +11,11 @@ Every feature exposes direct functionality via the `osr` CLI. Commands accept st
 ### Principle III: Test-First & Deterministic Verification
 Test-Driven Development (TDD) is standard: unit, integration, and contract tests are maintained for all endpoints, schemas, and packaging pipelines. Published skills are content-addressed and verified via cryptographic SHA-256 manifests.
 
-### Principle IV: Superior Discovery with Zero-Friction Syntactic Search
-Skill discovery is the central user experience. High-precision syntactic search (heavily weighting Name/Slug at 1.0 and Description at 0.4 via `ts_rank_cd`) is a first-class citizen operating out of the box with zero external AI model requirements or API costs. Vector embeddings are an optional layered enhancement.
+### Principle IV: Superior Hybrid Discovery with Zero-Config Local Embeddings
+Skill discovery is the central user experience. Semantic search is enabled by default via a built-in lightweight local ONNX embedding engine (FastEmbed, requiring zero API keys and zero cost), blended with high-precision weighted syntactic search (prioritizing Name/Slug at 1.0 and Description at 0.4 via `ts_rank_cd`). Users can plug in alternative providers (Gemini, OpenAI, Ollama) or disable semantic search (`none`) via `osr.config.yaml` without functional degradation.
 
 ### Principle V: Simplicity, Transparency & YAGNI
-Direct database storage eliminates external object store (S3/MinIO) complexity. A built-in lightweight Web UI eliminates separate frontend container build pipelines for v1. Unnecessary services or premature abstractions are rejected.
+Direct database storage (SQLite for zero-ops local, PostgreSQL for hosted) eliminates external object store (S3/MinIO) complexity. A single unified configuration file (`osr.config.yaml`) and built-in lightweight Web UI eliminate separate configuration silos and frontend container build pipelines for v1. Unnecessary services or premature abstractions are rejected.
 
 ## Licensing & Governance
 

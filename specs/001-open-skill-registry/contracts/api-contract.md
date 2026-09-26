@@ -325,3 +325,19 @@ When `AUTH_ENABLED=true`, the initial admin API key is bootstrapped via the `OSR
 
 ### `GET /health`
 Returns system status (`db`, `redis`, `embeddings`). Unauthenticated.
+
+**Response `data`**:
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "status": "ok",
+    "db": "connected",
+    "redis": "connected",
+    "embeddings": "fastembed (BAAI/bge-small-en-v1.5)"
+  },
+  "timestamp": "2026-09-26T12:00:00Z",
+  "requestId": "req_01j8v3wz9y..."
+}
+```
