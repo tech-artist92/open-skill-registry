@@ -19,12 +19,12 @@ All tasks must be implemented adhering to the **Functional & Declarative** parad
 
 **Purpose**: Project initialization, package scaffolding, and build tooling
 
-- [ ] T001 Initialize Python project layout with `pyproject.toml` specifying `[project]`, dependencies (`fastapi`, `uvicorn`, `sqlmodel`, `sqlalchemy[asyncio]`, `asyncpg`, `aiosqlite>=0.20.0`, `pgvector`, `fastembed>=0.3.0`, `numpy>=1.24.0`, `pyyaml>=6.0.1`, `redis`, `typer`, `rich`, `httpx`, `pydantic>=2.8.0`), and optional extras (`[cli]`, `[server]`, `[all]`)
-- [ ] T002 [P] Configure development tooling: `ruff`, `mypy`, `pytest`, `pytest-asyncio`, and test configuration in `pyproject.toml`
-- [ ] T003 [P] Create local container orchestration in `docker-compose.yml` (PostgreSQL 16 with pgvector extension, Redis 7, and development server)
-- [ ] T004 [P] Create production multi-stage container build in `Dockerfile` for the registry server
-- [ ] T005 Create Alembic migration scaffolding in `src/open_skill_registry/server/db/migrations/` and `alembic.ini`
-- [ ] T006 [P] Implement unified environment configuration loader in `src/open_skill_registry/config.py` (`RegistryConfig`, `SearchConfig`, `DatabaseConfig`, `StorageConfig`, `ServerConfig`) supporting `osr.config.yaml` / `.osr/config.yaml` / dict, and create canonical `osr.config.yaml` template file in project root
+- [x] T001 Initialize Python project layout with `pyproject.toml` specifying `[project]`, dependencies (`fastapi`, `uvicorn`, `sqlmodel`, `sqlalchemy[asyncio]`, `asyncpg`, `aiosqlite>=0.20.0`, `pgvector`, `fastembed>=0.3.0`, `numpy>=1.24.0`, `pyyaml>=6.0.1`, `redis`, `typer`, `rich`, `httpx`, `pydantic>=2.8.0`), and optional extras (`[cli]`, `[server]`, `[all]`)
+- [x] T002 [P] Configure development tooling: `ruff`, `mypy`, `pytest`, `pytest-asyncio`, and test configuration in `pyproject.toml`
+- [x] T003 [P] Create local container orchestration in `docker-compose.yml` (PostgreSQL 16 with pgvector extension, Redis 7, and development server)
+- [x] T004 [P] Create production multi-stage container build in `Dockerfile` for the registry server
+- [x] T005 Create Alembic migration scaffolding in `src/open_skill_registry/server/db/migrations/` and `alembic.ini`
+- [x] T006 [P] Implement unified environment configuration loader in `src/open_skill_registry/config.py` (`RegistryConfig`, `SearchConfig`, `DatabaseConfig`, `StorageConfig`, `ServerConfig`) supporting `osr.config.yaml` / `.osr/config.yaml` / dict, and create canonical `osr.config.yaml` template file in project root
 
 ---
 
