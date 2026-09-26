@@ -39,7 +39,7 @@ All tasks must be implemented adhering to the **Functional & Declarative** parad
 - [x] T009 [P] Implement shared skill frontmatter and metadata DTOs in `src/open_skill_registry/models/skill.py` (`SkillFrontmatter`, `SkillSummary`, `SkillDetail`, `ComplianceSnapshot`)
 - [x] T010 Implement canonical CAS manifest hashing engine in `src/open_skill_registry/registry/core/manifest.py` computing deterministic SHA-256 over sorted file entries
 - [x] T011 [P] Implement package safety validator in `src/open_skill_registry/registry/core/validator.py` enforcing allowed extensions (`.md`, `.txt`, `.json`, `.yaml`, `.yml`, `.py`, `.sh`, `.ts`, `.js`, `.png`, `.jpg`, `.svg`), per-file limit (1MB default), total package limit (10MB default), and path traversal prevention (`../` and leading `/`)
-- [ ] T012 Implement SQLModel / SQLAlchemy ORM entities in `src/open_skill_registry/server/db/models.py`:
+- [x] T012 Implement SQLModel / SQLAlchemy ORM entities in `src/open_skill_registry/server/db/models.py`:
   - `Namespace`: `id` UUID PK, `slug` unique varchar(64), `name`, `description`, `visibility` ("PUBLIC", "NAMESPACE_ONLY", "PRIVATE")
   - `Skill`: `id` UUID PK, `namespace_id` FK, `slug` varchar(64), `name`, `description`, `tags` JSONB, `visibility`, `download_count` bigint, `tsv` tsvector generated column weighted `setweight(name, 'A') || setweight(slug, 'A') || setweight(description, 'B')`
   - `SkillVersion`: `id` UUID PK, `skill_id` FK, `version` SemVer 2.0 varchar, `content_hash` char(64), `instructions` text, `parsed_frontmatter` JSONB, `manifest` JSONB, `compliance_snapshot` JSONB, `is_yanked` bool, `created_by` varchar
@@ -47,8 +47,8 @@ All tasks must be implemented adhering to the **Functional & Declarative** parad
   - `SkillEmbedding`: `id` UUID PK, `version_id` FK, `source_field` varchar, `embedding` vector(384/768/1536), `model_name` varchar
   - `ReleaseTag`: `id` UUID PK, `skill_id` FK, `tag_name` varchar, `version_id` FK
   - `ApiKey`: `id` UUID PK, `key_hash` varchar, `key_prefix` varchar(8), `label` varchar, `namespace_id` FK nullable, `permissions` varchar ("READ", "WRITE", "ADMIN"), `is_active` bool
-- [ ] T013 Create initial Alembic migration in `src/open_skill_registry/server/db/migrations/versions/001_initial_schema.py` creating `vector` extension, all 7 tables, GIN indexes on `tsv` and `tags`, HNSW index on `embedding`, and pre-seeding `public` namespace
-- [ ] T014 Implement async database session engine and lifecycle in `src/open_skill_registry/server/db/session.py`
+- [x] T013 Create initial Alembic migration in `src/open_skill_registry/server/db/migrations/versions/001_initial_schema.py` creating `vector` extension, all 7 tables, GIN indexes on `tsv` and `tags`, HNSW index on `embedding`, and pre-seeding `public` namespace
+- [x] T014 Implement async database session engine and lifecycle in `src/open_skill_registry/server/db/session.py`
 - [ ] T015 [P] Implement Redis caching and ETag revalidation helper in `src/open_skill_registry/server/services/cache_service.py` with graceful fallback when Redis is unavailable
 - [ ] T016 [P] Implement default local ONNX embedding provider using FastEmbed (`BAAI/bge-small-en-v1.5`, 384-dim, 0 API keys) and pluggable adapters in `src/open_skill_registry/registry/embeddings/` (`base.py`, `fastembed.py`, `gemini.py`, `openai.py`, `ollama.py`, `huggingface.py`, `none.py`)
 - [ ] T017 Implement basic FastAPI app factory, error handlers, and health route in `src/open_skill_registry/server/app.py` and `src/open_skill_registry/server/routes/health.py` (`GET /health`)
