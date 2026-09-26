@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class SkillFrontmatter(BaseModel):
@@ -34,6 +34,12 @@ class SkillSummary(BaseModel):
     visibility: str = "PUBLIC"
     tags: list[str] = Field(default_factory=list)
     content_hash: str = ""
+
+    @model_validator(mode="after")
+    def populate_version(self) -> "SkillSummary":
+        if self.version is None:
+            object.__setattr__(self, "version", self.latest_version)
+        return self
 
 
 

@@ -247,7 +247,6 @@ class PgVectorStorage(BaseStorage):
             for _, skill, ns_slug, sv in scored_skills[:limit]:
                 latest_version = sv.version if sv else ""
                 content_hash = sv.content_hash if sv else ""
-                tags = []  # Assuming tags are not populated in this query directly, we'll just pass empty list for now or we could fetch them. The instruction says `tags=skill.tags or []` but Skill model doesn't have `tags` natively as relationship in our standard setup unless added. Wait, the instruction says: `tags=skill.tags or []` or actually it might just mean passing an empty list or whatever is available on skill. Wait, `Skill` model might not have `tags`. Let me pass `[]` if it doesn't. Or maybe the instruction literally meant `tags=getattr(skill, 'tags', [])`. Let's use `getattr(skill, 'tags', [])`.
 
                 skills.append(SkillSummary(
                     name=skill.name,
