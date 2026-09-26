@@ -13,7 +13,7 @@ Open Skill Registry is an open-source, high-performance skill registry ecosystem
 Open Skill Registry supports two distinct execution modes out of the box (inspired by modern AI frameworks like Mem0):
 
 1. **Embedded Library Mode (`SkillRegistry`)**:
-   - In-process Python engine connecting directly to your database (PostgreSQL + pgvector or local SQLite/Chroma).
+   - In-process Python engine connecting directly to your database (PostgreSQL + pgvector or local SQLite).
    - Zero network overhead, zero HTTP servers to deploy or manage.
    - Ideal for single-agent apps, local pipelines, and zero-ops setups.
 2. **Hosted Server Mode (`open_skill_registry.server` + `SkillRegistryClient`)**:

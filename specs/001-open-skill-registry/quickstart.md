@@ -89,7 +89,7 @@ docker compose up -d
 
 # Verify services are healthy
 curl http://localhost:8080/health
-# Output: {"status": "ok", "db": "connected", "redis": "connected"}
+# Output: {"code": 0, "msg": "success", "data": {"status": "ok", "db": "connected", "redis": "connected", "embeddings": "fastembed (BAAI/bge-small-en-v1.5)"}}
 
 # Web UI is now accessible in browser at:
 # http://localhost:8080/

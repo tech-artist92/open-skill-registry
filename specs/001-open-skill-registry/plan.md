@@ -9,7 +9,7 @@
 ## Summary
 
 Open Skill Registry is an open-source skill registry ecosystem for discovering, distributing, and dynamically loading AI agent skills, designed with a **dual delivery architecture** (inspired by Mem0):
-1. **Embedded Library Mode (`SkillRegistry` / `AsyncSkillRegistry`)**: In-process Python engine that connects directly to the developer's infrastructure (PostgreSQL/pgvector, local SQLite/Chroma, pluggable embeddings) without requiring an HTTP server, with zero network overhead.
+1. **Embedded Library Mode (`SkillRegistry` / `AsyncSkillRegistry`)**: In-process Python engine that connects directly to the developer's infrastructure (PostgreSQL/pgvector, local SQLite, pluggable embeddings) without requiring an HTTP server, with zero network overhead.
 2. **Hosted Server & Client Mode (`open_skill_registry.server` + `SkillRegistryClient`)**: Self-hostable FastAPI server with Web UI, REST API, Redis caching, multi-tier visibility (`PUBLIC`, `NAMESPACE_ONLY`, `PRIVATE`), and a drop-in HTTP client sharing identical operational semantics.
 
 Both modes share the identical core engine (`SkillService`, `SearchService`, `EmbeddingService`), content-addressed storage (SHA-256 manifests), and 100% Google ADK 2.9.2+ `SkillToolset` compatibility.
