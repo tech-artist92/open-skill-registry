@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Open Skill Registry - Discovery, inspection, and publishing of agent skills">
+  <title>Open Skill Registry</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <!-- Application Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-icon">📦</span>
+        <h1 class="brand-title">Open Skill Registry</h1>
+        <span class="badge badge-version">v1.0</span>
+      </div>
+
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input
+          type="search"
+          id="search-input"
+          class="search-input"
+          placeholder="Search skills by name, description, or capability..."
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button id="search-clear-btn" class="search-clear-btn hidden" title="Clear search" aria-label="Clear search">&times;</button>
+      </div>
+
+      <div class="header-actions">
+        <button id="open-upload-btn" class="btn btn-primary">
+          <span class="btn-icon">⬆</span>
+          <span>Publish Skill</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="content-header">
+      <div class="section-heading">
+        <h2 id="catalog-title">Skill Catalog</h2>
+        <span id="skills-count" class="count-pill">0 skills</span>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading-spinner" class="state-container">
+      <div class="spinner"></div>
+      <p class="state-text">Loading skills...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="state-container hidden">
+      <div class="state-icon">⚠️</div>
+      <h3 class="state-title">Failed to load skills</h3>
+      <p id="error-message" class="state-text">Could not connect to the registry server.</p>
+      <button id="retry-btn" class="btn btn-secondary">Retry</button>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="state-container hidden">
+      <div class="state-icon">📂</div>
+      <h3 class="state-title" id="empty-title">No skills found</h3>
+      <p class="state-text" id="empty-message">Get started by publishing your first agent skill to the registry.</p>
+      <button id="empty-publish-btn" class="btn btn-primary">Publish Skill</button>
+    </div>
+
+    <!-- Catalog Grid -->
+    <div id="catalog-grid" class="catalog-grid"></div>
+  </main>
+
+  <!-- Skill Detail Modal -->
+  <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-skill-name">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-badges">
+            <span id="modal-namespace" class="pill pill-namespace">public</span>
+            <span id="modal-visibility" class="pill pill-visibility">PUBLIC</span>
+            <span id="modal-version-badge" class="pill pill-version">1.0.0</span>
+          </div>
+          <h2 id="modal-skill-name" class="modal-title">Skill Name</h2>
+          <code id="modal-slug" class="modal-slug">public/skill-slug</code>
+        </div>
+        <button id="close-detail-modal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p id="modal-description" class="modal-description">Skill description goes here...</p>
+
+        <!-- Metadata Row -->
+        <div class="metadata-grid">
+          <div class="meta-item">
+            <span class="meta-label">Version</span>
+            <select id="modal-version-select" class="meta-select" aria-label="Select version"></select>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Downloads</span>
+            <span id="modal-downloads" class="meta-value">0</span>
+          </div>
+          <div class="meta-item meta-item-wide">
+            <span class="meta-label">Content Hash</span>
+            <div class="hash-container">
+              <code id="modal-content-hash" class="meta-hash">sha256:...</code>
+              <button id="copy-hash-btn" class="btn-copy" title="Copy hash">📋</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div class="detail-section">
+          <h4 class="section-title">Tags</h4>
+          <div id="modal-tags" class="tags-list"></div>
+        </div>
+
+        <!-- Instructions Markdown -->
+        <div class="detail-section">
+          <div class="section-header-inline">
+            <h4 class="section-title">Instructions (SKILL.md)</h4>
+          </div>
+          <div id="modal-instructions" class="markdown-container">
+            <p class="placeholder-text">Loading instructions...</p>
+          </div>
+        </div>
+
+        <!-- Resources / Manifest -->
+        <div class="detail-section">
+          <h4 class="section-title">Package Files</h4>
+          <ul id="modal-files-list" class="files-tree">
+            <li class="file-item">SKILL.md</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="cli-command">
+          <span class="cli-prefix">$</span>
+          <code id="cli-pull-command">open-skill-registry pull public/slug</code>
+          <button id="copy-cli-btn" class="btn-copy" title="Copy command">📋</button>
+        </div>
+        <button id="detail-close-footer-btn" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Publish / Upload Modal -->
+  <div id="upload-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="upload-modal-title" class="modal-title">Publish Skill</h2>
+        <button id="close-upload-modal" class="btn-close" aria-label="Close upload modal">&times;</button>
+      </div>
+
+      <form id="upload-form" class="upload-form">
+        <!-- Dropzone -->
+        <div id="upload-dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload skill package dropzone">
+          <input
+            type="file"
+            id="file-input"
+            class="hidden-file-input"
+            accept=".zip,.md,text/markdown,application/zip"
+          >
+          <div id="dropzone-prompt" class="dropzone-content">
+            <span class="dropzone-icon">☁️</span>
+            <p class="dropzone-main-text"><strong>Drag &amp; drop</strong> your skill package here, or <span class="link-text">browse</span></p>
+            <p class="dropzone-sub-text">Accepts a <code>SKILL.md</code> file or a packaged <code>.zip</code> archive</p>
+          </div>
+          <div id="dropzone-file-info" class="file-selected-box hidden">
+            <span class="file-icon">📄</span>
+            <div class="file-details">
+              <span id="selected-file-name" class="file-name">skill.zip</span>
+              <span id="selected-file-size" class="file-size">12.4 KB</span>
+            </div>
+            <button type="button" id="remove-file-btn" class="btn-remove-file" title="Remove file">&times;</button>
+          </div>
+        </div>
+
+        <!-- Form fields -->
+        <div class="form-fields">
+          <div class="form-group">
+            <label for="upload-namespace">Namespace <span class="required">*</span></label>
+            <input
+              type="text"
+              id="upload-namespace"
+              class="form-input"
+              value="public"
+              placeholder="e.g. public, dev, my-team"
+              required
+            >
+            <small class="form-help">Namespace to publish the skill into (default: public).</small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="upload-slug">Slug <span class="optional">(optional)</span></label>
+              <input
+                type="text"
+                id="upload-slug"
+                class="form-input"
+                placeholder="Inferred from SKILL.md if blank"
+              >
+            </div>
+            <div class="form-group">
+              <label for="upload-version">Version <span class="optional">(optional)</span></label>
+              <input
+                type="text"
+                id="upload-version"
+                class="form-input"
+                placeholder="Inferred from SKILL.md if blank"
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="upload-visibility">Visibility</label>
+            <select id="upload-visibility" class="form-select">
+              <option value="PUBLIC" selected>PUBLIC</option>
+              <option value="NAMESPACE_ONLY">NAMESPACE_ONLY</option>
+              <option value="PRIVATE">PRIVATE</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Feedback alerts -->
+        <div id="upload-status" class="alert alert-info hidden">
+          <span class="alert-spinner"></span>
+          <span id="upload-status-text">Publishing skill package...</span>
+        </div>
+
+        <div id="upload-success" class="alert alert-success hidden">
+          <span class="alert-icon">✓</span>
+          <div class="alert-body">
+            <strong>Skill published successfully!</strong>
+            <div id="upload-success-details" class="alert-details"></div>
+          </div>
+        </div>
+
+        <div id="upload-error" class="alert alert-error hidden">
+          <span class="alert-icon">✕</span>
+          <div class="alert-body">
+            <strong>Publishing failed</strong>
+            <p id="upload-error-text" class="alert-details"></p>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="modal-footer">
+          <button type="button" id="cancel-upload-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="publish-btn" class="btn btn-primary" disabled>Publish Skill</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

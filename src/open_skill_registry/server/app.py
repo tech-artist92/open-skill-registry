@@ -1,20 +1,20 @@
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from open_skill_registry.config import RegistryConfig
-from open_skill_registry.server.db.session import close_db, init_db
+from open_skill_registry.registry.storage.factory import get_storage
+from open_skill_registry.server.db.session import close_db, get_async_engine, init_db
 from open_skill_registry.server.routes import auth, health, namespaces, skills
 from open_skill_registry.server.services.cache_service import CacheService
 
-
-from open_skill_registry.registry.storage.factory import get_storage
-from open_skill_registry.server.db.session import get_async_engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -93,5 +93,19 @@ def create_app(config: RegistryConfig | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(namespaces.router)
     app.include_router(skills.router)
+
+    static_dir = Path(__file__).parent / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+        @app.get("/", include_in_schema=False)
+        async def serve_index() -> Response:
+            index_file = static_dir / "index.html"
+            if index_file.exists():
+                return FileResponse(index_file)
+            return JSONResponse(
+                status_code=404,
+                content={"code": 404, "error": "Not found", "data": None},
+            )
 
     return app
