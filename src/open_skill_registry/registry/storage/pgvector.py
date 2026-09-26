@@ -315,3 +315,53 @@ class PgVectorStorage(BaseStorage):
             v = v_res.scalar_one()
             v.is_yanked = True
             await session.commit()
+
+    async def list_skills(self, namespace: Optional[str] = None, page: int = 1, size: int = 20, sort: str = "updated") -> Any:
+        from open_skill_registry.models.response import Page
+        async with self.session_maker() as session:
+            stmt = select(Skill, Namespace.slug.label("ns_slug")).join(Namespace)
+            if namespace:
+                stmt = stmt.where(Namespace.slug == namespace)
+            
+            # total count
+            count_stmt = select(func.count()).select_from(stmt.subquery())
+            total_result = await session.execute(count_stmt)
+            total = total_result.scalar() or 0
+
+            if sort == "updated":
+                stmt = stmt.order_by(Skill.updated_at.desc())
+            elif sort == "downloads":
+                stmt = stmt.order_by(Skill.download_count.desc())
+            
+            stmt = stmt.offset((page - 1) * size).limit(size)
+            result = await session.execute(stmt)
+            
+            summaries = []
+            for skill, ns_slug in result.all():
+                latest_version = ""
+                if skill.latest_version_id:
+                    latest_res = await session.execute(
+                        select(SkillVersion.version).where(SkillVersion.id == skill.latest_version_id)
+                    )
+                    ver = latest_res.scalar_one_or_none()
+                    if ver:
+                        latest_version = ver
+
+                summaries.append(SkillSummary(
+                    name=skill.name,
+                    slug=skill.slug,
+                    namespace=ns_slug,
+                    description=skill.description or "",
+                    latest_version=latest_version,
+                    download_count=skill.download_count,
+                    visibility=skill.visibility
+                ))
+            
+            return Page(items=summaries, total=total, page=page, page_size=size)
+
+    async def get_skill_resource_file(self, version_id: uuid.UUID, path: str) -> Optional[Any]:
+        async with self.session_maker() as session:
+            result = await session.execute(
+                select(SkillResource).where(SkillResource.version_id == version_id, SkillResource.path == path)
+            )
+            return result.scalar_one_or_none()

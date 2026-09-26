@@ -58,3 +58,11 @@ class BaseStorage(ABC):
     @abstractmethod
     async def yank_version(self, namespace: str, slug: str, version: str) -> None:
         pass
+
+    @abstractmethod
+    async def list_skills(self, namespace: Optional[str] = None, page: int = 1, size: int = 20, sort: str = "updated") -> Any:
+        pass
+
+    @abstractmethod
+    async def get_skill_resource_file(self, version_id: uuid.UUID, path: str) -> Optional[Any]:
+        pass

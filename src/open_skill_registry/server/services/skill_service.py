@@ -34,7 +34,13 @@ class SkillService:
         # Core validation
         validate_package_or_raise(files)
         
+        raw_content = files.get("SKILL.md", b"").decode("utf-8")
         frontmatter = self._parse_frontmatter(files.get("SKILL.md", b""))
+        instructions = ""
+        if raw_content.startswith("---"):
+            parts = raw_content.split("---", 2)
+            if len(parts) >= 3:
+                instructions = parts[2].strip()
         
         name = frontmatter.get("name", "Untitled")
         slug = explicit_slug or frontmatter.get("slug") or self._slugify(name)
@@ -80,7 +86,7 @@ class SkillService:
             manifest=manifest,
             files=files,
             parsed_frontmatter=frontmatter,
-            instructions=frontmatter.get("instructions", ""),
+            instructions=instructions,
             embeddings=embedding,
             model_name=provider.__class__.__name__
         )
