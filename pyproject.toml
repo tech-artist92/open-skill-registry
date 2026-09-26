@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "open-skill-registry"
+version = "0.1.0"
+description = "Open-source skill registry ecosystem for discovering, distributing, and dynamically loading AI agent skills"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Open Skill Registry Contributors" },
+]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "sqlmodel",
+    "sqlalchemy[asyncio]",
+    "asyncpg",
+    "aiosqlite>=0.20.0",
+    "pgvector",
+    "fastembed>=0.3.0",
+    "numpy>=1.24.0",
+    "pyyaml>=6.0.1",
+    "redis",
+    "typer",
+    "rich",
+    "httpx",
+    "pydantic>=2.8.0",
+]
+
+[project.optional-dependencies]
+cli = [
+    "typer",
+    "rich",
+    "httpx",
+]
+server = [
+    "fastapi",
+    "uvicorn",
+    "redis",
+    "asyncpg",
+    "pgvector",
+]
+all = [
+    "open-skill-registry[cli,server]",
+]
+
+[project.scripts]
+osr = "open_skill_registry.cli.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/open_skill_registry"]
