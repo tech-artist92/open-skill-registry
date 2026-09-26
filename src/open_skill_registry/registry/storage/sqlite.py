@@ -286,6 +286,16 @@ class SQLiteStorage(BaseStorage):
             # Treat constraint as version
             return await self.get_skill_version(namespace, slug, constraint)
 
+    async def resolve_by_hash(self, namespace: str, slug: str, content_hash: str) -> Optional[SkillVersion]:
+        async with self.session_maker() as session:
+            result = await session.execute(
+                select(SkillVersion)
+                .join(Skill, SkillVersion.skill_id == Skill.id)
+                .join(Namespace)
+                .where(Namespace.slug == namespace, Skill.slug == slug, SkillVersion.content_hash == content_hash)
+            )
+            return result.scalar_one_or_none()
+
     async def tag_version(self, namespace: str, slug: str, version: str, tag: str) -> None:
         async with self.session_maker() as session:
             skill_res = await session.execute(

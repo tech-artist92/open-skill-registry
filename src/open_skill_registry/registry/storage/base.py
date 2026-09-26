@@ -58,6 +58,10 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
+    async def resolve_by_hash(self, namespace: str, slug: str, content_hash: str) -> Optional[SkillVersion]:
+        pass
+
+    @abstractmethod
     async def tag_version(self, namespace: str, slug: str, version: str, tag: str) -> None:
         pass
 

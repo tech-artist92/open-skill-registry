@@ -219,3 +219,94 @@ async def get_skill_file(
         content=resource.content,
         media_type=resource.content_type
     )
+
+from pydantic import BaseModel
+
+class TagVersionRequest(BaseModel):
+    version: str
+
+@router.put("/{namespace}/{slug}/tags/{tag}")
+async def assign_tag(
+    request: Request,
+    namespace: str,
+    slug: str,
+    tag: str,
+    body: TagVersionRequest
+):
+    storage = getattr(request.app.state, "storage", None)
+    if not storage:
+        raise HTTPException(status_code=500, detail="Storage not initialized")
+    
+    try:
+        await storage.tag_version(namespace, slug, body.version, tag)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+        
+    return ResponseEnvelope(
+        code=0,
+        msg="success",
+        data={
+            "namespace": namespace,
+            "slug": slug,
+            "tag": tag,
+            "version": body.version
+        }
+    )
+
+@router.get("/{namespace}/{slug}/tags/{tag}")
+async def get_tag_shortcut(
+    request: Request,
+    namespace: str,
+    slug: str,
+    tag: str
+):
+    storage = getattr(request.app.state, "storage", None)
+    if not storage:
+        raise HTTPException(status_code=500, detail="Storage not initialized")
+    
+    sv = await storage.resolve_version(namespace, slug, tag)
+    if not sv:
+        raise HTTPException(status_code=404, detail="Tag not found or could not be resolved")
+        
+    return ResponseEnvelope(data={
+        "id": str(sv.id),
+        "version": sv.version,
+        "content_hash": sv.content_hash,
+        "manifest": sv.manifest,
+        "frontmatter": sv.parsed_frontmatter,
+        "compliance_snapshot": sv.compliance_snapshot,
+        "tags": await storage.get_version_tags(sv.id)
+    })
+
+@router.get("/{namespace}/{slug}/resolve")
+async def resolve_skill(
+    request: Request,
+    namespace: str,
+    slug: str,
+    hash: Optional[str] = Query(None),
+    version: Optional[str] = Query(None),
+    tag: Optional[str] = Query(None)
+):
+    storage = getattr(request.app.state, "storage", None)
+    if not storage:
+        raise HTTPException(status_code=500, detail="Storage not initialized")
+    
+    sv = None
+    if hash:
+        sv = await storage.resolve_by_hash(namespace, slug, hash)
+    elif version:
+        sv = await storage.get_skill_version(namespace, slug, version)
+    else:
+        resolved_tag = tag or "latest"
+        sv = await storage.resolve_version(namespace, slug, resolved_tag)
+        
+    if not sv:
+        raise HTTPException(status_code=404, detail="Could not resolve version")
+        
+    return ResponseEnvelope(data={
+        "namespace": namespace,
+        "slug": slug,
+        "version": sv.version,
+        "content_hash": sv.content_hash,
+        "manifest_url": f"/api/v1/skills/{namespace}/{slug}/versions/{sv.version}"
+    })
