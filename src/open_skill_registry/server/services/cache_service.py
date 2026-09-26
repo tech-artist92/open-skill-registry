@@ -13,8 +13,10 @@ class CacheConfig:
     redis_url: Optional[str] = None
 
 class CacheService:
-    def __init__(self, config: Optional[CacheConfig] = None, redis_url: Optional[str] = None):
-        if config is None:
+    def __init__(self, config: Union[CacheConfig, str, None] = None, redis_url: Optional[str] = None):
+        if isinstance(config, str):
+            self.config = CacheConfig(enabled=True, redis_url=config)
+        elif config is None:
             self.config = CacheConfig(enabled=True, redis_url=redis_url)
         else:
             self.config = config
@@ -26,8 +28,6 @@ class CacheService:
         if self.config.enabled and self.config.redis_url:
             try:
                 import redis.asyncio as redis
-                # We defer actual connection check to when we use it, 
-                # but we can try pinging or just catch exceptions during ops.
                 self._redis = redis.from_url(self.config.redis_url, decode_responses=True)
                 self._use_redis = True
             except Exception as e:
@@ -71,7 +71,7 @@ class CacheService:
         
         self._in_memory_cache[key] = {
             "value": value,
-            "expires_at": time.time() + ttl_seconds if ttl_seconds else None
+            "expires_at": time.time() + ttl_seconds if ttl_seconds is not None else None
         }
 
     async def delete(self, key: str) -> None:
@@ -106,6 +106,17 @@ class CacheService:
     def check_etag(self, etag: str, if_none_match: Optional[str]) -> bool:
         if not if_none_match:
             return False
+        
+        # Strip weak prefix if present in the given etag
+        if etag.startswith("W/"):
+            etag = etag[2:]
+
         # Remove whitespace and split by comma for multiple tags
-        tags = [t.strip() for t in if_none_match.split(',')]
+        tags = []
+        for t in if_none_match.split(','):
+            t = t.strip()
+            if t.startswith("W/"):
+                t = t[2:]
+            tags.append(t)
+
         return etag in tags or "*" in tags
