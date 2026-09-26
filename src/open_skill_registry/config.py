@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
 class DatabaseConfig(BaseModel):
@@ -72,6 +72,17 @@ class RegistryConfig(BaseSettings):
         env_nested_delimiter="__",
         env_file=".env",
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (env_settings, init_settings, dotenv_settings, file_secret_settings)
 
     @classmethod
     def load(cls, config_source: Union[str, Path, Dict[str, Any], None] = None) -> "RegistryConfig":
