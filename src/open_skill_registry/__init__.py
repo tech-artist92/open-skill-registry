@@ -8,5 +8,6 @@ __version__ = "0.1.0"
 
 from .config import RegistryConfig
 from .registry.main import AsyncSkillRegistry, SkillRegistry
+from .client.main import AsyncSkillRegistryClient, SkillRegistryClient
 
-__all__ = ["RegistryConfig", "AsyncSkillRegistry", "SkillRegistry"]
+__all__ = ["RegistryConfig", "AsyncSkillRegistry", "SkillRegistry", "AsyncSkillRegistryClient", "SkillRegistryClient"]
