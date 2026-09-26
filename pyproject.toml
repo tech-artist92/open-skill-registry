@@ -28,6 +28,7 @@ dependencies = [
     "rich",
     "httpx",
     "pydantic>=2.8.0",
+    "pydantic-settings",
 ]
 
 [project.optional-dependencies]
