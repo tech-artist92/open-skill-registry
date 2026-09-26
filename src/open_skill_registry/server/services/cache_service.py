@@ -1,19 +1,18 @@
-import time
 import hashlib
-import asyncio
 import logging
-from typing import Optional, Union, Dict, Any
+import time
 from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 @dataclass
 class CacheConfig:
     enabled: bool = True
-    redis_url: Optional[str] = None
+    redis_url: str | None = None
 
 class CacheService:
-    def __init__(self, config: Union[CacheConfig, str, None, Any] = None, redis_url: Optional[str] = None):
+    def __init__(self, config: CacheConfig | str | None | Any = None, redis_url: str | None = None):
         if isinstance(config, str):
             self.config = CacheConfig(enabled=True, redis_url=config)
         elif config is None:
@@ -21,7 +20,7 @@ class CacheService:
         else:
             self.config = config
 
-        self._in_memory_cache: Dict[str, Dict[str, Any]] = {}
+        self._in_memory_cache: dict[str, dict[str, Any]] = {}
         self._redis = None
         self._use_redis = False
         
@@ -45,7 +44,7 @@ class CacheService:
         for k in expired_keys:
             del self._in_memory_cache[k]
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         if self._use_redis:
             try:
                 val = await self._redis.get(key)
@@ -100,13 +99,13 @@ class CacheService:
         
         self._in_memory_cache.clear()
 
-    def generate_etag(self, content: Union[str, bytes]) -> str:
+    def generate_etag(self, content: str | bytes) -> str:
         if isinstance(content, str):
             content = content.encode('utf-8')
         digest = hashlib.sha256(content).hexdigest()
         return f'"{digest}"'
 
-    def check_etag(self, etag: str, if_none_match: Optional[str]) -> bool:
+    def check_etag(self, etag: str, if_none_match: str | None) -> bool:
         if not if_none_match:
             return False
         

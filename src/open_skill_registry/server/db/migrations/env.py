@@ -18,7 +18,7 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from sqlmodel import SQLModel
-from open_skill_registry.server.db import models
+
 target_metadata = SQLModel.metadata
 
 # other values from the config, defined by the needs of env.py,

@@ -5,24 +5,23 @@ Revises:
 Create Date: 2026-09-26 12:00:00.000000
 
 """
-from typing import Sequence, Union
 import uuid
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime
 
-from alembic import op
 import sqlalchemy as sa
 import sqlmodel
+from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
-
 
 # revision identifiers, used by Alembic.
 revision: str = '001_initial_schema'
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 def get_utc_now():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 def upgrade() -> None:
     # 1. Create vector extension if not exists (Postgres only)

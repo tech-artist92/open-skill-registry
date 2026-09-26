@@ -1,5 +1,6 @@
-import typer
 from pathlib import Path
+
+import typer
 from rich.console import Console
 
 app = typer.Typer()

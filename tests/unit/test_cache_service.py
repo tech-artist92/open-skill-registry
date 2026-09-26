@@ -1,14 +1,15 @@
-import pytest
-import asyncio
-from typing import Optional
 
-from open_skill_registry.server.services.cache_service import CacheService, CacheConfig
+import pytest
+
+from open_skill_registry.server.services.cache_service import CacheConfig, CacheService
+
 
 @pytest.fixture
 def cache_config():
     return CacheConfig(enabled=True, redis_url=None)
 
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, patch
+
 
 @pytest.mark.asyncio
 async def test_cache_service_in_memory_fallback():

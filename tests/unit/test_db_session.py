@@ -1,15 +1,18 @@
-import pytest
 import os
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlmodel import select
+
+from open_skill_registry.server.db.models import Namespace
 from open_skill_registry.server.db.session import (
+    close_db,
     get_async_engine,
+    get_db_session,
     get_session_factory,
     init_db,
-    get_db_session,
-    close_db
 )
-from open_skill_registry.server.db.models import Namespace
-from sqlmodel import select
+
 
 @pytest.mark.asyncio
 async def test_get_async_engine():
@@ -49,7 +52,6 @@ async def test_init_db_and_session_factory():
 async def test_get_db_session_dependency():
     os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
     
-    from open_skill_registry.server.db import session as db_session_module
     
     # Ensure starting clean
     await close_db()

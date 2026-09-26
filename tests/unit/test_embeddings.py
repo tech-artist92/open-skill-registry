@@ -1,10 +1,10 @@
-import pytest
-from typing import List
 
-from open_skill_registry.registry.embeddings.base import BaseEmbeddingProvider
-from open_skill_registry.registry.embeddings.none import NoOpEmbeddingProvider
-from open_skill_registry.registry.embeddings.fastembed import FastEmbedProvider
+import pytest
+
 from open_skill_registry.registry.embeddings.factory import get_embedding_provider
+from open_skill_registry.registry.embeddings.fastembed import FastEmbedProvider
+from open_skill_registry.registry.embeddings.none import NoOpEmbeddingProvider
+
 
 @pytest.mark.asyncio
 async def test_noop_provider():
@@ -19,7 +19,8 @@ async def test_noop_provider():
     vec = await provider.embed_text("single")
     assert vec == []
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 
 @pytest.mark.asyncio
 async def test_fastembed_provider():

@@ -1,7 +1,5 @@
-import os
-from pathlib import Path
-import pytest
 from typer.testing import CliRunner
+
 from open_skill_registry.cli.main import app
 
 runner = CliRunner()

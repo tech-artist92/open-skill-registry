@@ -1,11 +1,11 @@
 from .base import BaseEmbeddingProvider
-from .none import NoOpEmbeddingProvider
+from .factory import get_embedding_provider
 from .fastembed import FastEmbedProvider
 from .gemini import GeminiEmbeddingProvider
-from .openai import OpenAIEmbeddingProvider
-from .ollama import OllamaEmbeddingProvider
 from .huggingface import HuggingFaceEmbeddingProvider
-from .factory import get_embedding_provider
+from .none import NoOpEmbeddingProvider
+from .ollama import OllamaEmbeddingProvider
+from .openai import OpenAIEmbeddingProvider
 
 __all__ = [
     "BaseEmbeddingProvider",

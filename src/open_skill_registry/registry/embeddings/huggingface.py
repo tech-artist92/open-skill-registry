@@ -1,10 +1,12 @@
 import os
+
 import httpx
-from typing import List, Optional
+
 from .base import BaseEmbeddingProvider
 
+
 class HuggingFaceEmbeddingProvider(BaseEmbeddingProvider):
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
+    def __init__(self, api_key: str | None = None, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
         self.api_key = api_key or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_API_KEY")
         self.model_name = model_name
         self._dimension = 384
@@ -13,7 +15,7 @@ class HuggingFaceEmbeddingProvider(BaseEmbeddingProvider):
     def dimension(self) -> int:
         return self._dimension
 
-    async def embed_texts(self, texts: List[str]) -> List[List[float]]:
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{self.model_name}"
         headers = {}
         if self.api_key:

@@ -1,16 +1,17 @@
 import uuid
-from typing import Optional
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from open_skill_registry.config import RegistryConfig
+from open_skill_registry.server.db.session import close_db, init_db
 from open_skill_registry.server.routes import health
-from open_skill_registry.server.db.session import init_db, close_db
 from open_skill_registry.server.services.cache_service import CacheService
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     await close_db()
 
-def create_app(config: Optional[RegistryConfig] = None) -> FastAPI:
+def create_app(config: RegistryConfig | None = None) -> FastAPI:
     if config is None:
         config = RegistryConfig.load()
 

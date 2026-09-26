@@ -1,10 +1,12 @@
 import os
+
 import httpx
-from typing import List, Optional
+
 from .base import BaseEmbeddingProvider
 
+
 class GeminiEmbeddingProvider(BaseEmbeddingProvider):
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "models/text-embedding-004"):
+    def __init__(self, api_key: str | None = None, model_name: str = "models/text-embedding-004"):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
             raise ValueError("Gemini API key required")
@@ -17,7 +19,7 @@ class GeminiEmbeddingProvider(BaseEmbeddingProvider):
     def dimension(self) -> int:
         return self._dimension
 
-    async def embed_texts(self, texts: List[str]) -> List[List[float]]:
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         # Using the batchEmbedContents endpoint
         url = f"https://generativelanguage.googleapis.com/v1beta/{self.model_name}:batchEmbedContents"
         

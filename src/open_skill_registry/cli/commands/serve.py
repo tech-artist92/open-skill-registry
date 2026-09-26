@@ -1,8 +1,9 @@
+from pathlib import Path
+
 import typer
 import uvicorn
-from typing import Optional
-from pathlib import Path
 from rich.console import Console
+
 from open_skill_registry.config import RegistryConfig
 
 app = typer.Typer()
@@ -10,9 +11,9 @@ console = Console()
 
 @app.callback(invoke_without_command=True)
 def serve(
-    config: Optional[Path] = typer.Option(None, "--config", help="Path to config file"),
-    host: Optional[str] = typer.Option(None, "--host", help="Bind socket to this host."),
-    port: Optional[int] = typer.Option(None, "--port", help="Bind socket to this port."),
+    config: Path | None = typer.Option(None, "--config", help="Path to config file"),
+    host: str | None = typer.Option(None, "--host", help="Bind socket to this host."),
+    port: int | None = typer.Option(None, "--port", help="Bind socket to this port."),
     reload: bool = typer.Option(False, "--reload", help="Enable auto-reload.")
 ):
     """Start the FastAPI server."""

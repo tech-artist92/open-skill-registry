@@ -1,6 +1,8 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from open_skill_registry.server.app import create_app
+
 
 @pytest.fixture
 def app():

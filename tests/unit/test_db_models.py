@@ -1,13 +1,20 @@
-import pytest
-from datetime import datetime, timezone
-import uuid
 import json
+
+import pytest
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.types import String
-from sqlmodel import SQLModel, Session, create_engine, select, Column
+from sqlmodel import Session, SQLModel, create_engine, select
+
 from open_skill_registry.server.db.models import (
-    Namespace, Skill, SkillVersion, SkillResource, SkillEmbedding, ReleaseTag, ApiKey, VectorType
+    ApiKey,
+    Namespace,
+    ReleaseTag,
+    Skill,
+    SkillEmbedding,
+    SkillResource,
+    SkillVersion,
+    VectorType,
 )
+
 
 @pytest.fixture(name="engine")
 def engine_fixture():

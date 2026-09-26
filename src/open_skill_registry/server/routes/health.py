@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Request, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import text
-from typing import Dict, Any
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from open_skill_registry.models.response import ResponseEnvelope
 from open_skill_registry.server.db.session import get_db_session
 
 router = APIRouter()
 
-@router.get("/health", response_model=ResponseEnvelope[Dict[str, str]])
+@router.get("/health", response_model=ResponseEnvelope[dict[str, str]])
 async def health_check(request: Request, db: AsyncSession = Depends(get_db_session)):
     app = request.app
     cache_service = getattr(app.state, "cache_service", None)

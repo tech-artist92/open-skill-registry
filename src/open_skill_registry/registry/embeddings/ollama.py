@@ -1,6 +1,8 @@
+
 import httpx
-from typing import List, Optional
+
 from .base import BaseEmbeddingProvider
+
 
 class OllamaEmbeddingProvider(BaseEmbeddingProvider):
     def __init__(self, host: str = "http://localhost:11434", model_name: str = "nomic-embed-text"):
@@ -16,7 +18,7 @@ class OllamaEmbeddingProvider(BaseEmbeddingProvider):
             self._dimension = 768
         return self._dimension
 
-    async def embed_texts(self, texts: List[str]) -> List[List[float]]:
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         url = f"{self.host.rstrip('/')}/api/embed"
         
         async with httpx.AsyncClient() as client:

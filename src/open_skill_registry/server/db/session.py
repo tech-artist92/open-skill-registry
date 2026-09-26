@@ -1,22 +1,22 @@
 import os
-from typing import Optional, AsyncIterator
 import uuid
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import (
-    create_async_engine,
     AsyncEngine,
     AsyncSession,
-    async_sessionmaker
+    async_sessionmaker,
+    create_async_engine,
 )
 from sqlmodel import SQLModel, select
 
 from .models import Namespace
 
-global_engine: Optional[AsyncEngine] = None
-global_session_factory: Optional[async_sessionmaker[AsyncSession]] = None
+global_engine: AsyncEngine | None = None
+global_session_factory: async_sessionmaker[AsyncSession] | None = None
 
-def get_async_engine(db_url: Optional[str] = None) -> AsyncEngine:
+def get_async_engine(db_url: str | None = None) -> AsyncEngine:
     if db_url is None:
         db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
         
@@ -44,7 +44,7 @@ def get_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]
         autoflush=False
     )
 
-async def init_db(engine: Optional[AsyncEngine] = None) -> None:
+async def init_db(engine: AsyncEngine | None = None) -> None:
     global global_engine
     if engine is None:
         if global_engine is None:
@@ -68,8 +68,8 @@ async def init_db(engine: Optional[AsyncEngine] = None) -> None:
                 slug="public",
                 name="Public Community Skills",
                 visibility="PUBLIC",
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc)
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC)
             )
             session.add(public_ns)
             await session.commit()

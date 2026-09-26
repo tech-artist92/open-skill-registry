@@ -1,7 +1,8 @@
-from typing import Optional
+
 from .base import BaseEmbeddingProvider
 
-def get_embedding_provider(provider_type: str = "fastembed", model_name: Optional[str] = None, **kwargs) -> BaseEmbeddingProvider:
+
+def get_embedding_provider(provider_type: str = "fastembed", model_name: str | None = None, **kwargs) -> BaseEmbeddingProvider:
     if provider_type == "none":
         from .none import NoOpEmbeddingProvider
         return NoOpEmbeddingProvider()
