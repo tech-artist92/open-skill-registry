@@ -27,8 +27,8 @@ htmlcov/
 *.db
 *.sqlite
 *.sqlite3
-data/
-storage/
+/data/
+/storage/
 
 # Graphify analysis outputs
 graphify-out/
