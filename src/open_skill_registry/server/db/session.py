@@ -45,11 +45,11 @@ def get_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]
     )
 
 async def init_db(engine: Optional[AsyncEngine] = None) -> None:
+    global global_engine
     if engine is None:
         if global_engine is None:
-            engine = get_async_engine()
-        else:
-            engine = global_engine
+            global_engine = get_async_engine()
+        engine = global_engine
         
     async with engine.begin() as conn:
         # Create all tables (useful for embedded mode / tests)
@@ -79,10 +79,9 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
     
     if global_engine is None:
         global_engine = get_async_engine()
-        global_session_factory = get_session_factory(global_engine)
         
     if global_session_factory is None:
-        raise ValueError("Session factory not initialized.")
+        global_session_factory = get_session_factory(global_engine)
         
     async with global_session_factory() as session:
         try:

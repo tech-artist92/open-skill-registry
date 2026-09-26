@@ -63,6 +63,12 @@ async def test_get_db_session_dependency():
     
     assert isinstance(session, AsyncSession)
     
+    # Verify we can query the public namespace seeded by init_db (proves engine reuse)
+    result = await session.execute(select(Namespace).where(Namespace.slug == "public"))
+    ns = result.scalar_one_or_none()
+    assert ns is not None
+    assert ns.name == "Public Community Skills"
+    
     # Clean up
     await gen.aclose()
     await close_db()
