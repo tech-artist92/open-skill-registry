@@ -185,32 +185,60 @@ class PgVectorStorage(BaseStorage):
         namespace: Optional[str] = None
     ) -> List[SkillSummary]:
         async with self.session_maker() as session:
-            # We would use pgvector's <-> operator here. 
-            # Because sqlmodel might not have it bound easily, we could use text().
-            # A simple implementation mixing FTS and vector:
+            # We construct a query using func.ts_rank_cd and optionally vector cosine distance.
             
-            stmt = select(Skill, Namespace.slug.label("ns_slug")).join(Namespace)
+            # Text matching via TSVECTOR
+            # ts_rank_cd(tsv, plainto_tsquery('english', query))
+            tsquery = func.plainto_tsquery('english', query)
+            rank = func.ts_rank_cd(Skill.tsv, tsquery)
+            
+            stmt = select(Skill, Namespace.slug.label("ns_slug"), rank.label("text_score"))
+            stmt = stmt.join(Namespace)
+            
+            if query_vector:
+                # pgvector cosine distance is `<=>`
+                # cosine similarity = 1 - distance
+                stmt = stmt.outerjoin(SkillVersion, Skill.latest_version_id == SkillVersion.id)
+                stmt = stmt.outerjoin(SkillEmbedding, SkillVersion.id == SkillEmbedding.version_id)
+                distance = SkillEmbedding.embedding.cosine_distance(query_vector)
+                stmt = stmt.add_columns(distance.label("vec_distance"))
+            
             if namespace:
                 stmt = stmt.where(Namespace.slug == namespace)
             
-            # Using plain string matching as fallback, real implementation uses TSVECTOR
-            # Actually we can do text match using ts_rank_cd
-            stmt = stmt.where(
-                or_(
-                    Skill.name.ilike(f"%{query}%"),
-                    Skill.description.ilike(f"%{query}%")
+            # If no query vector, we at least filter by text matching
+            if not query_vector:
+                stmt = stmt.where(
+                    or_(
+                        Skill.name.ilike(f"%{query}%"),
+                        Skill.description.ilike(f"%{query}%"),
+                        rank > 0
+                    )
                 )
-            )
-            
+
             result = await session.execute(stmt)
             rows = result.all()
             
-            # If query_vector is present, we should sort by vector distance.
-            # Due to the complexity of mixing it cleanly here without breaking other things, 
-            # we'll do an in-memory sort or use raw SQL if we want to be fancy.
-            # I will just return the results directly.
+            # Post-process to combine scores
+            scored_skills = []
+            for row in rows:
+                skill = row[0]
+                ns_slug = row[1]
+                text_score = row[2] or 0.0
+                
+                final_score = text_score
+                if query_vector:
+                    vec_dist = row[3]
+                    vec_score = (1 - vec_dist) if vec_dist is not None else 0.0
+                    final_score = (0.3 * text_score) + (0.7 * vec_score)
+                
+                if final_score > 0 or not query_vector:
+                    scored_skills.append((final_score, skill, ns_slug))
+
+            scored_skills.sort(key=lambda x: x[0], reverse=True)
+            
             skills = []
-            for skill, ns_slug in rows:
+            for _, skill, ns_slug in scored_skills[:limit]:
                 latest_version = ""
                 if skill.latest_version_id:
                     latest_res = await session.execute(
@@ -229,7 +257,7 @@ class PgVectorStorage(BaseStorage):
                     download_count=skill.download_count,
                     visibility=skill.visibility
                 ))
-            return skills[:limit]
+            return skills
 
     async def resolve_version(self, namespace: str, slug: str, constraint: str) -> Optional[SkillVersion]:
         async with self.session_maker() as session:

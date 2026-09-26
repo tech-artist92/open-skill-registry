@@ -196,12 +196,14 @@ class SQLiteStorage(BaseStorage):
             if namespace:
                 stmt = stmt.where(Namespace.slug == namespace)
             
-            stmt = stmt.where(
-                or_(
-                    Skill.name.ilike(f"%{query}%"),
-                    Skill.description.ilike(f"%{query}%")
+            if not query_vector:
+                stmt = stmt.where(
+                    or_(
+                        Skill.name.ilike(f"%{query}%"),
+                        Skill.description.ilike(f"%{query}%")
+                    )
                 )
-            )
+            
             result = await session.execute(stmt)
             rows = result.all()
             
@@ -210,18 +212,27 @@ class SQLiteStorage(BaseStorage):
                 skills.append((skill, ns_slug))
 
             if query_vector:
-                # In-memory rescoring
                 rescored = []
                 for skill, ns_slug in skills:
                     score = 0.0
+                    
+                    # Keyword match boost
+                    if query.lower() in skill.name.lower():
+                        score += 0.5
+                    elif skill.description and query.lower() in skill.description.lower():
+                        score += 0.2
+
                     if skill.latest_version_id:
                         emb_res = await session.execute(
                             select(SkillEmbedding).where(SkillEmbedding.version_id == skill.latest_version_id)
                         )
                         emb = emb_res.scalar_one_or_none()
                         if emb and emb.embedding:
-                            score = cosine_similarity(query_vector, emb.embedding)
-                    rescored.append((score, skill, ns_slug))
+                            vec_score = cosine_similarity(query_vector, emb.embedding)
+                            score += vec_score
+                    
+                    if score > 0:
+                        rescored.append((score, skill, ns_slug))
                 rescored.sort(key=lambda x: x[0], reverse=True)
                 skills = [(item[1], item[2]) for item in rescored[:limit]]
             else:

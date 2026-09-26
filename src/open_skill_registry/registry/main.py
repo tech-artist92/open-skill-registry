@@ -6,6 +6,7 @@ import yaml
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from open_skill_registry.config import RegistryConfig
+from open_skill_registry.server.db.session import init_db
 from open_skill_registry.models.skill import SkillDetail, SkillSummary
 from open_skill_registry.registry.core.manifest import compute_manifest
 from open_skill_registry.registry.core.validator import validate_package_or_raise
@@ -33,8 +34,7 @@ class AsyncSkillRegistry:
         )
 
     async def initialize(self):
-        async with self.engine.begin() as conn:
-            await conn.run_sync(SQLModel.metadata.create_all)
+        await init_db(self.engine)
 
     def _parse_frontmatter(self, skill_md_content: bytes) -> dict[str, Any]:
         content_str = skill_md_content.decode("utf-8")
@@ -58,7 +58,7 @@ class AsyncSkillRegistry:
         version = frontmatter.get("version", "1.0.0")
         
         content_str = files.get("SKILL.md", b"").decode("utf-8")
-        if "---" in content_str:
+        if content_str.startswith("---"):
             parts = content_str.split("---", 2)
             instructions = parts[2].strip() if len(parts) >= 3 else ""
         else:
@@ -69,8 +69,7 @@ class AsyncSkillRegistry:
         model_name = getattr(self.embedding, "model_name", "none")
         
         if self.config.search.provider != "none":
-            embed_resp = await self.embedding.generate_embedding(text_for_embedding)
-            embeddings = embed_resp.embedding
+            embeddings = await self.embedding.embed_text(text_for_embedding)
 
         return await self.storage.save_skill_version(
             namespace=namespace,
@@ -101,8 +100,7 @@ class AsyncSkillRegistry:
     async def search(self, query: str, limit: int = 10, namespace: str | None = None) -> list[SkillSummary]:
         query_vector = None
         if self.config.search.provider != "none":
-            embed_resp = await self.embedding.generate_embedding(query)
-            query_vector = embed_resp.embedding
+            query_vector = await self.embedding.embed_text(query)
         return await self.storage.search_skills(query, query_vector, limit, namespace)
 
     async def resolve(self, namespace: str, slug: str, constraint: str) -> SkillVersion | None:
