@@ -7,8 +7,8 @@ from open_skill_registry.server.app import create_app
 from open_skill_registry.server.db.session import init_db
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
-async def setup_db():
-    await init_db()
+async def setup_db(app):
+    await init_db(app.state.engine)
 
 @pytest.fixture
 def app():

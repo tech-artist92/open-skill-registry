@@ -46,12 +46,16 @@ async def publish_skill(
     service = SkillService(db, storage, config)
     
     try:
-        skill_version, final_namespace, final_slug = await service.publish_skill(
+        skill_version = await service.publish_skill(
             namespace=namespace,
             files=files,
             explicit_slug=slug,
             explicit_version=version
         )
+        final_slug = slug
+        if not final_slug:
+            frontmatter = service._parse_frontmatter(files.get("SKILL.md", b""))
+            final_slug = frontmatter.get("slug") or service._slugify(frontmatter.get("name", "untitled"))
     except DuplicateVersionError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
@@ -61,11 +65,9 @@ async def publish_skill(
         code=0,
         msg="success",
         data={
-            "namespace": final_namespace,
+            "namespace": namespace,
             "slug": final_slug,
             "version": skill_version.version,
             "content_hash": getattr(skill_version, "content_hash", "")
         }
     )
-
-# Note: The test for duplicate might need 409 status code. Let's adjust the exception handling.

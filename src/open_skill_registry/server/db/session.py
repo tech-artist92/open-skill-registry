@@ -20,9 +20,26 @@ def get_async_engine(db_url: str | None = None) -> AsyncEngine:
     if db_url is None:
         db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
         
+    # Ensure async driver dialects
+    if db_url.startswith("sqlite:/") and "sqlite+aiosqlite" not in db_url:
+        db_url = db_url.replace("sqlite:", "sqlite+aiosqlite:", 1)
+    elif db_url.startswith("postgresql:/") and "postgresql+asyncpg" not in db_url:
+        db_url = db_url.replace("postgresql:", "postgresql+asyncpg:", 1)
+    elif db_url.startswith("postgres:/") and "postgresql+asyncpg" not in db_url:
+        db_url = db_url.replace("postgres:", "postgresql+asyncpg:", 1)
+
     # Handle "~" in SQLite URLs
-    if db_url.startswith("sqlite+aiosqlite:///~"):
+    if ":///~" in db_url:
         db_url = db_url.replace("~", os.path.expanduser("~"), 1)
+
+    if db_url.startswith("sqlite+aiosqlite:///") and not db_url.startswith("sqlite+aiosqlite:///:memory:"):
+        file_path = db_url.replace("sqlite+aiosqlite:///", "", 1)
+        dir_name = os.path.dirname(os.path.abspath(file_path))
+        if dir_name:
+            try:
+                os.makedirs(dir_name, exist_ok=True)
+            except (PermissionError, OSError):
+                pass
         
     connect_args = {}
     if db_url.startswith("sqlite"):

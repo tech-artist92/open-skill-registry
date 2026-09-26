@@ -85,7 +85,9 @@ class SkillService:
             model_name=provider.__class__.__name__
         )
         
-        return saved_version, namespace, slug
+        await self.storage.tag_version(namespace, slug, version, "latest")
+        
+        return saved_version
 
     def _parse_frontmatter(self, content: bytes) -> Dict[str, Any]:
         text = content.decode("utf-8")

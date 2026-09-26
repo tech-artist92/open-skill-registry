@@ -20,16 +20,6 @@ from open_skill_registry.server.db.session import get_async_engine
 async def lifespan(app: FastAPI):
     # Startup
     await init_db()
-    # Assuming config is in app.state
-    config = getattr(app.state, "config", None)
-    cache_config = getattr(config, "cache", None) if config else None
-    
-    app.state.cache_service = CacheService(config=cache_config)
-    
-    if config:
-        import open_skill_registry.server.db.session as db_session
-        app.state.storage = get_storage(config, db_session.global_engine)
-    
     yield
     # Shutdown
     await close_db()
@@ -44,6 +34,11 @@ def create_app(config: RegistryConfig | None = None) -> FastAPI:
     )
     
     app.state.config = config
+    db_url = getattr(config.database, "url", None) if hasattr(config, "database") else None
+    engine = get_async_engine(db_url)
+    app.state.engine = engine
+    app.state.storage = get_storage(config, engine)
+    app.state.cache_service = CacheService(config=getattr(config, "cache", None))
 
     app.add_middleware(
         CORSMiddleware,
