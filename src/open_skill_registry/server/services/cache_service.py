@@ -13,7 +13,7 @@ class CacheConfig:
     redis_url: Optional[str] = None
 
 class CacheService:
-    def __init__(self, config: Union[CacheConfig, str, None] = None, redis_url: Optional[str] = None):
+    def __init__(self, config: Union[CacheConfig, str, None, Any] = None, redis_url: Optional[str] = None):
         if isinstance(config, str):
             self.config = CacheConfig(enabled=True, redis_url=config)
         elif config is None:
@@ -24,14 +24,17 @@ class CacheService:
         self._in_memory_cache: Dict[str, Dict[str, Any]] = {}
         self._redis = None
         self._use_redis = False
+        
+        r_url = getattr(self.config, "redis_url", getattr(self.config, "url", None))
+        enabled = getattr(self.config, "enabled", True)
 
-        if self.config.enabled and self.config.redis_url:
+        if enabled and r_url:
             try:
                 import redis.asyncio as redis
-                self._redis = redis.from_url(self.config.redis_url, decode_responses=True)
+                self._redis = redis.from_url(r_url, decode_responses=True)
                 self._use_redis = True
             except Exception as e:
-                logger.warning(f"Failed to initialize Redis from {self.config.redis_url}: {e}")
+                logger.warning(f"Failed to initialize Redis from {r_url}: {e}")
                 self._use_redis = False
         else:
             self._use_redis = False

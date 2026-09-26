@@ -40,10 +40,15 @@ async def health_check(request: Request, db: AsyncSession = Depends(get_db_sessi
     # The config has embedding_provider and embedding_model.
     embeddings_status = "unknown"
     if config:
-        provider = getattr(config, "embedding_provider", "fastembed")
-        model = getattr(config, "embedding_model", "BAAI/bge-small-en-v1.5")
+        search_config = getattr(config, "search", None)
+        if search_config:
+            provider = getattr(search_config, "provider", "fastembed")
+            model = getattr(search_config, "model", "BAAI/bge-small-en-v1.5")
+        else:
+            provider = "fastembed"
+            model = "BAAI/bge-small-en-v1.5"
+            
         if not model:
-            # Fallback if config has different fields or defaults
             if provider == "fastembed":
                 model = "BAAI/bge-small-en-v1.5"
             else:

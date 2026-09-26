@@ -19,8 +19,11 @@ database:
 cache:
   enabled: false
 
-embedding_provider: "fastembed"
-embedding_model: "BAAI/bge-small-en-v1.5"
+search:
+  provider: "fastembed"
+  model: "BAAI/bge-small-en-v1.5"
+  dimension: 384
+  semantic_enabled: true
 """
 
 @app.callback(invoke_without_command=True)

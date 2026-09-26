@@ -20,6 +20,7 @@ def version_callback(value: bool):
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     version: Optional[bool] = typer.Option(
         None, "--version", callback=version_callback, is_eager=True, help="Print version and exit."
     ),
@@ -28,4 +29,8 @@ def main(
     api_key: Optional[str] = typer.Option(None, "--api-key", help="API key for authentication."),
     format: str = typer.Option("text", "--format", help="Output format (text | json).")
 ):
-    pass
+    ctx.ensure_object(dict)
+    ctx.obj["config"] = config
+    ctx.obj["registry_url"] = registry_url
+    ctx.obj["api_key"] = api_key
+    ctx.obj["format"] = format

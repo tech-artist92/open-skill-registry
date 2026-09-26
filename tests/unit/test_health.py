@@ -46,3 +46,18 @@ async def test_404_error_handler(app):
         assert data["code"] == 404
         assert "Not Found" in data["error"]
         assert data.get("data") is None
+
+@pytest.mark.asyncio
+async def test_422_error_handler(app):
+    @app.get("/test-422")
+    async def dummy_route(param: int):
+        return {"param": param}
+        
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/test-422?param=not-an-int")
+        assert response.status_code == 422
+        
+        data = response.json()
+        assert data["code"] == 422
+        assert data["error"] == "Validation error"
+        assert "errors" in data["data"]

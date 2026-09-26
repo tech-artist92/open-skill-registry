@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 
 from open_skill_registry.config import RegistryConfig
 from open_skill_registry.server.routes import health
-from open_skill_registry.server.db.session import init_db
+from open_skill_registry.server.db.session import init_db, close_db
 from open_skill_registry.server.services.cache_service import CacheService
 
 @asynccontextmanager
@@ -22,8 +22,7 @@ async def lifespan(app: FastAPI):
     app.state.cache_service = CacheService(config=cache_config)
     yield
     # Shutdown
-    if hasattr(app.state, "cache_service"):
-        await app.state.cache_service.clear()
+    await close_db()
 
 def create_app(config: Optional[RegistryConfig] = None) -> FastAPI:
     if config is None:
