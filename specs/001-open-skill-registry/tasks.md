@@ -7,14 +7,6 @@
 
 ---
 
-## Execution Directives: LLM-Optimized Vibe Coding & Testing
-All tasks must be implemented adhering to the **Functional & Declarative** paradigm to maximize predictability and LLM iteration speed:
-1. **Test-Driven (TDD) Mandatory**: Every implementation task implies an implicit testing prerequisite. You MUST write unit tests *before* writing the implementation.
-2. **Pure Functions**: Write business logic as pure, side-effect-free functions operating on immutable Pydantic models. Avoid stateful classes.
-3. **Declarative Composition**: Keep the imperative shell (DB, HTTP, CLI) as thin as possible, immediately offloading to the functional core.
-
----
-
 ## Phase 1: Setup (Shared Infrastructure & Environment)
 
 **Purpose**: Project initialization, package scaffolding, and build tooling
@@ -85,13 +77,13 @@ All tasks must be implemented adhering to the **Functional & Declarative** parad
 **Independent Test**: Run `osr push ./sample-skill/ --namespace myorg --version 1.0.0` or call `POST /api/v1/skills/publish` and verify version immutability (409 on duplicate) and safety rejections (400 on `../`).
 
 ### Tests for User Story 2
-- [ ] T025 [P] [US2] Contract test for `POST /api/v1/skills/publish` in `tests/contract/test_publish_endpoint.py` (valid publish, duplicate 409, traversal rejection 400)
-- [ ] T026 [P] [US2] Unit test for version inference logic (frontmatter vs patch auto-increment) in `tests/unit/test_version_inference.py`
+- [x] T025 [P] [US2] Contract test for `POST /api/v1/skills/publish` in `tests/contract/test_publish_endpoint.py` (valid publish, duplicate 409, traversal rejection 400)
+- [x] T026 [P] [US2] Unit test for version inference logic (frontmatter vs patch auto-increment) in `tests/unit/test_version_inference.py`
 
 ### Implementation for User Story 2
-- [ ] T027 [US2] Implement skill publishing and version ingestion service in `src/open_skill_registry/server/services/skill_service.py` (parse `SKILL.md`, extract `references/`, `assets/`, `scripts/`, infer version per FR-028, store `SKILL.md` as resource per data model, compute manifest hash, assign `latest` tag)
-- [ ] T028 [US2] Implement `POST /api/v1/skills/publish` endpoint in `src/open_skill_registry/server/routes/skills.py` handling multipart uploads (single file, directories, zip bundles) and enforcing security constraints (FR-018, FR-021)
-- [ ] T029 [US2] Implement `osr push` command in `src/open_skill_registry/cli/commands/push.py` supporting standalone file, local directory, zip archive, and `--batch` multi-skill upload
+- [x] T027 [US2] Implement skill publishing and version ingestion service in `src/open_skill_registry/server/services/skill_service.py` (parse `SKILL.md`, extract `references/`, `assets/`, `scripts/`, infer version per FR-028, store `SKILL.md` as resource per data model, compute manifest hash, assign `latest` tag)
+- [x] T028 [US2] Implement `POST /api/v1/skills/publish` endpoint in `src/open_skill_registry/server/routes/skills.py` handling multipart uploads (single file, directories, zip bundles) and enforcing security constraints (FR-018, FR-021)
+- [x] T029 [US2] Implement `osr push` command in `src/open_skill_registry/cli/commands/push.py` supporting standalone file, local directory, zip archive, and `--batch` multi-skill upload
 
 **Checkpoint**: Developers can publish skills via CLI and HTTP API with full validation and immutability guarantees.
 
