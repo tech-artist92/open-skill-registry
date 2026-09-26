@@ -1,16 +1,13 @@
 import tempfile
 from pathlib import Path
+
 import yaml
 
 from open_skill_registry.config import RegistryConfig
 
 
 def test_config_load_from_dict():
-    data = {
-        "mode": "server",
-        "database": {"driver": "postgres"},
-        "server": {"port": 9000}
-    }
+    data = {"mode": "server", "database": {"driver": "postgres"}, "server": {"port": 9000}}
     config = RegistryConfig.load(data)
     assert config.mode == "server"
     assert config.database.driver == "postgres"
@@ -19,10 +16,7 @@ def test_config_load_from_dict():
 
 
 def test_config_load_from_yaml_file():
-    data = {
-        "version": "2.0",
-        "storage": {"driver": "s3", "local_path": "/tmp/test"}
-    }
+    data = {"version": "2.0", "storage": {"driver": "s3", "local_path": "/tmp/test"}}
     with tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False) as f:
         yaml.dump(data, f)
         temp_path = f.name
@@ -48,6 +42,7 @@ def test_config_load_default_fallback():
 
 def test_config_load_explicit_path_not_found():
     import pytest
+
     with pytest.raises(FileNotFoundError):
         RegistryConfig.load("/path/to/non/existent/config.yaml")
 
@@ -56,4 +51,3 @@ def test_config_env_override(monkeypatch):
     monkeypatch.setenv("OSR_DATABASE__URL", "postgresql+asyncpg://user:pass@localhost:5432/mydb")
     config = RegistryConfig.load()
     assert config.database.url == "postgresql+asyncpg://user:pass@localhost:5432/mydb"
-

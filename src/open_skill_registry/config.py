@@ -1,6 +1,5 @@
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field
@@ -22,9 +21,9 @@ class SearchConfig(BaseModel):
     dimension: int = 384
     syntactic_weight: float = 0.3
     semantic_weight: float = 0.7
-    gemini_api_key: Optional[str] = None
-    openai_api_key: Optional[str] = None
-    ollama_base_url: Optional[str] = None
+    gemini_api_key: str | None = None
+    openai_api_key: str | None = None
+    ollama_base_url: str | None = None
 
 
 class StorageConfig(BaseModel):
@@ -37,7 +36,7 @@ class ServerConfig(BaseModel):
     port: int = 8080
     auth_enabled: bool = False
     admin_key: str = ""
-    cors_origins: List[str] = Field(default_factory=lambda: ["*"])
+    cors_origins: list[str] = Field(default_factory=lambda: ["*"])
 
 
 class CacheConfig(BaseModel):
@@ -85,12 +84,12 @@ class RegistryConfig(BaseSettings):
         return (env_settings, init_settings, dotenv_settings, file_secret_settings)
 
     @classmethod
-    def load(cls, config_source: Union[str, Path, Dict[str, Any], None] = None) -> "RegistryConfig":
+    def load(cls, config_source: str | Path | dict[str, Any] | None = None) -> "RegistryConfig":
         """Load configuration from a given source (dict or yaml file path) or default paths."""
         if isinstance(config_source, dict):
             return cls(**config_source)
 
-        paths_to_try: List[Path] = []
+        paths_to_try: list[Path] = []
         if isinstance(config_source, (str, Path)):
             path = Path(config_source)
             if not path.exists() or not path.is_file():
@@ -105,7 +104,7 @@ class RegistryConfig(BaseSettings):
 
         for path in paths_to_try:
             if path.exists() and path.is_file():
-                with open(path, "r", encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
                 return cls(**data)
 

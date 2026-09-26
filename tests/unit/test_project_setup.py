@@ -1,6 +1,6 @@
+import tomllib
 import unittest
 from pathlib import Path
-import tomllib
 
 
 class TestProjectSetup(unittest.TestCase):
@@ -50,7 +50,6 @@ class TestProjectSetup(unittest.TestCase):
         ]
 
         # Ensure all expected dependencies or their version constraints are in dependencies list
-        dep_str = " ".join(dependencies)
         for dep in expected_dependencies:
             # Check either exact match or package name match
             pkg_name = dep.split(">=")[0].split("[")[0]

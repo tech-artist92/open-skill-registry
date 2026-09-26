@@ -34,11 +34,11 @@ All tasks must be implemented adhering to the **Functional & Declarative** parad
 
 **⚠️ CRITICAL**: Blocks all user stories
 
-- [ ] T007 Implement shared Pydantic response envelope and pagination models in `src/open_skill_registry/models/response.py` (`ResponseEnvelope[T]`, `Page[T]`)
-- [ ] T008 [P] Implement shared manifest models in `src/open_skill_registry/models/manifest.py` (`FileManifestEntry`, `SkillManifest`, with schema version "1.0")
-- [ ] T009 [P] Implement shared skill frontmatter and metadata DTOs in `src/open_skill_registry/models/skill.py` (`SkillFrontmatter`, `SkillSummary`, `SkillDetail`, `ComplianceSnapshot`)
-- [ ] T010 Implement canonical CAS manifest hashing engine in `src/open_skill_registry/registry/core/manifest.py` computing deterministic SHA-256 over sorted file entries
-- [ ] T011 [P] Implement package safety validator in `src/open_skill_registry/registry/core/validator.py` enforcing allowed extensions (`.md`, `.txt`, `.json`, `.yaml`, `.yml`, `.py`, `.sh`, `.ts`, `.js`, `.png`, `.jpg`, `.svg`), per-file limit (1MB default), total package limit (10MB default), and path traversal prevention (`../` and leading `/`)
+- [x] T007 Implement shared Pydantic response envelope and pagination models in `src/open_skill_registry/models/response.py` (`ResponseEnvelope[T]`, `Page[T]`)
+- [x] T008 [P] Implement shared manifest models in `src/open_skill_registry/models/manifest.py` (`FileManifestEntry`, `SkillManifest`, with schema version "1.0")
+- [x] T009 [P] Implement shared skill frontmatter and metadata DTOs in `src/open_skill_registry/models/skill.py` (`SkillFrontmatter`, `SkillSummary`, `SkillDetail`, `ComplianceSnapshot`)
+- [x] T010 Implement canonical CAS manifest hashing engine in `src/open_skill_registry/registry/core/manifest.py` computing deterministic SHA-256 over sorted file entries
+- [x] T011 [P] Implement package safety validator in `src/open_skill_registry/registry/core/validator.py` enforcing allowed extensions (`.md`, `.txt`, `.json`, `.yaml`, `.yml`, `.py`, `.sh`, `.ts`, `.js`, `.png`, `.jpg`, `.svg`), per-file limit (1MB default), total package limit (10MB default), and path traversal prevention (`../` and leading `/`)
 - [ ] T012 Implement SQLModel / SQLAlchemy ORM entities in `src/open_skill_registry/server/db/models.py`:
   - `Namespace`: `id` UUID PK, `slug` unique varchar(64), `name`, `description`, `visibility` ("PUBLIC", "NAMESPACE_ONLY", "PRIVATE")
   - `Skill`: `id` UUID PK, `namespace_id` FK, `slug` varchar(64), `name`, `description`, `tags` JSONB, `visibility`, `download_count` bigint, `tsv` tsvector generated column weighted `setweight(name, 'A') || setweight(slug, 'A') || setweight(description, 'B')`
