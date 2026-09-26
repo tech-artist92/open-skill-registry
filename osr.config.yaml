@@ -1,0 +1,123 @@
+# Copyright 2026 Open Skill Registry Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ==============================================================================
+# Open Skill Registry Configuration (osr.config.yaml)
+# ==============================================================================
+# This unified configuration file controls both Embedded Library Mode
+# and Hosted Server Mode.
+# ==============================================================================
+
+version: "1.0"
+
+# Operational mode: "embedded" (in-process library) or "server" (hosted FastAPI service)
+mode: "embedded"
+
+# ------------------------------------------------------------------------------
+# Database Settings
+# ------------------------------------------------------------------------------
+database:
+  # Driver: "sqlite" (default for zero-setup embedded use) or "postgres" (for hosted production)
+  driver: "sqlite"
+  
+  # Database connection URL
+  # SQLite example: "sqlite:///~/.osr/registry.db"
+  # PostgreSQL example: "postgresql+asyncpg://osr:osr_secret@localhost:5432/open_skill_registry"
+  url: "sqlite:///~/.osr/registry.db"
+
+  # Connection pool settings (for postgres)
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+
+# ------------------------------------------------------------------------------
+# Skill Discovery & Search Settings
+# ------------------------------------------------------------------------------
+search:
+  # Enable semantic vector search (ON by default)
+  semantic_enabled: true
+
+  # Embedding provider:
+  # - "fastembed"   : (Default) Local in-process ONNX model (0 API keys, 0 GPU needed)
+  # - "gemini"      : Google Gemini embeddings (requires GEMINI_API_KEY)
+  # - "openai"      : OpenAI embeddings (requires OPENAI_API_KEY)
+  # - "ollama"      : Local Ollama server
+  # - "huggingface" : Sentence-transformers / HuggingFace models
+  # - "none"        : Pure syntactic full-text search (no embeddings)
+  provider: "fastembed"
+
+  # Model identifier:
+  # fastembed default: "BAAI/bge-small-en-v1.5" (384 dimensions)
+  # gemini default   : "text-embedding-004" (768 dimensions)
+  # openai default   : "text-embedding-3-small" (1536 dimensions)
+  # ollama default   : "nomic-embed-text" (768 dimensions)
+  model: "BAAI/bge-small-en-v1.5"
+
+  # Vector dimension matching the chosen model
+  dimension: 384
+
+  # Hybrid search ranking weights: Reciprocal Rank Fusion (RRF) balance
+  # RRF formula: score = syntactic_weight * rank_syn + semantic_weight * rank_sem
+  syntactic_weight: 0.3
+  semantic_weight: 0.7
+
+  # Provider-specific settings (optional)
+  # gemini:
+  #   api_key: "${GEMINI_API_KEY}"
+  # openai:
+  #   api_key: "${OPENAI_API_KEY}"
+  # ollama:
+  #   base_url: "http://localhost:11434"
+
+# ------------------------------------------------------------------------------
+# Storage Settings (Resource & Package Artifacts)
+# ------------------------------------------------------------------------------
+storage:
+  # Storage driver: "local" (database/filesystem) or "s3"
+  driver: "local"
+  local_path: "~/.osr/storage"
+
+  # Optional S3 / MinIO backend:
+  # s3:
+  #   bucket: "my-skill-bucket"
+  #   region: "us-east-1"
+  #   endpoint_url: "http://localhost:9000"
+  #   access_key: "${AWS_ACCESS_KEY_ID}"
+  #   secret_key: "${AWS_SECRET_ACCESS_KEY}"
+
+# ------------------------------------------------------------------------------
+# Hosted Server Settings (Used when running `osr serve` or Docker)
+# ------------------------------------------------------------------------------
+server:
+  host: "0.0.0.0"
+  port: 8080
+  
+  # Authentication: false = Open Mode (default), true = Secured Mode (requires API keys)
+  auth_enabled: false
+  
+  # Initial administrative token for bootstrapping secured mode
+  # If empty and auth_enabled is true, an admin key is auto-generated on startup
+  admin_key: "${OSR_ADMIN_KEY:-}"
+  
+  # Allowed CORS origins
+  cors_origins:
+    - "*"
+
+# ------------------------------------------------------------------------------
+# Cache Settings (Redis - optional for high-throughput hosted server)
+# ------------------------------------------------------------------------------
+cache:
+  enabled: false
+  url: "redis://localhost:6379/0"
+  ttl_seconds: 300

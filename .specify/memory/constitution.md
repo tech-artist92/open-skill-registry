@@ -1,50 +1,25 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Open Skill Registry Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### Principle I: Library-First Architecture
+Every capability is first implemented as a clean, in-process, self-contained Python library (`SkillRegistry`) completely decoupled from HTTP frameworks. The hosted microservice server (`open_skill_registry.server`) and the Google ADK adapter (`OpenSkillRegistry`) are thin layers over this core library engine.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### Principle II: CLI Interface & Multi-Client Protocol
+Every feature exposes direct functionality via the `osr` CLI. Commands accept standard arguments/stdin, output formatted human-readable text or structured JSON (`--format json`), and provide exit codes for automation scripts and diverse agent runtimes.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### Principle III: Test-First & Deterministic Verification
+Test-Driven Development (TDD) is standard: unit, integration, and contract tests are maintained for all endpoints, schemas, and packaging pipelines. Published skills are content-addressed and verified via cryptographic SHA-256 manifests.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### Principle IV: Superior Discovery with Zero-Friction Syntactic Search
+Skill discovery is the central user experience. High-precision syntactic search (heavily weighting Name/Slug at 1.0 and Description at 0.4 via `ts_rank_cd`) is a first-class citizen operating out of the box with zero external AI model requirements or API costs. Vector embeddings are an optional layered enhancement.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### Principle V: Simplicity, Transparency & YAGNI
+Direct database storage eliminates external object store (S3/MinIO) complexity. A built-in lightweight Web UI eliminates separate frontend container build pipelines for v1. Unnecessary services or premature abstractions are rejected.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Licensing & Governance
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- **License**: Apache License, Version 2.0 (permissive open-source for community and enterprise use).
+- **Compliance**: All contributions and published packages adhere to the Apache 2.0 terms and Agent Skills Specification.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
-
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
-
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-09-26 | **Status**: Active
