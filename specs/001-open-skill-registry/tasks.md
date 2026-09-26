@@ -197,10 +197,10 @@
 **Independent Test**: Open browser at `http://localhost:8080/`, perform live search, and drag & drop a `SKILL.md` to publish.
 
 ### Implementation for User Story 8
-- [ ] T053 [P] [US8] Create HTML5 catalog and upload view in `src/open_skill_registry/server/static/index.html` with catalog grid, search bar, and drag-and-drop zone
-- [ ] T054 [P] [US8] Create modern styles in `src/open_skill_registry/server/static/styles.css`
-- [ ] T055 [US8] Implement client-side search, markdown rendering, and drag-and-drop multipart upload in `src/open_skill_registry/server/static/app.js`
-- [ ] T056 [US8] Mount static assets and index route at root `/` in `src/open_skill_registry/server/app.py`
+- [x] T053 [P] [US8] Create HTML5 catalog and upload view in `src/open_skill_registry/server/static/index.html` with catalog grid, search bar, and drag-and-drop zone
+- [x] T054 [P] [US8] Create modern styles in `src/open_skill_registry/server/static/styles.css`
+- [x] T055 [US8] Implement client-side search, markdown rendering, and drag-and-drop multipart upload in `src/open_skill_registry/server/static/app.js`
+- [x] T056 [US8] Mount static assets and index route at root `/` in `src/open_skill_registry/server/app.py`
 
 **Checkpoint**: Web UI catalog browsing and drag-and-drop uploading operational with zero separate frontend container build.
 

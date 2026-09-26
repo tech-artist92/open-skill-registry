@@ -165,7 +165,7 @@
   function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.innerHTML = '<span>' + (type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ️') + '</span><span>' + message + '</span>';
+    toast.innerHTML = '<span>' + (type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ️') + '</span><span>' + escapeHtml(message) + '</span>';
     elements.toastContainer.appendChild(toast);
     setTimeout(() => {
       toast.style.opacity = '0';
