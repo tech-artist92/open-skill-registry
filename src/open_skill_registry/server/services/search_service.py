@@ -26,24 +26,58 @@ class SearchService:
         return get_embedding_provider(provider_type=provider, model_name=model)
 
 
-    async def search(self, query: str, limit: int = 10, namespace: Optional[str] = None) -> List[dict]:
+    async def search(
+        self,
+        query: str,
+        limit: int = 10,
+        namespace: Optional[str] = None,
+        allowed_namespaces: Optional[List[str]] = None,
+        is_admin: bool = False,
+    ) -> List[dict]:
+        extra_kwargs = {}
+        if allowed_namespaces is not None:
+            extra_kwargs["allowed_namespaces"] = allowed_namespaces
+        if is_admin:
+            extra_kwargs["is_admin"] = is_admin
+
         # Syntactic fallback
         if not self.embedder:
-            results = await self.storage.search_skills(query, limit=limit, namespace=namespace)
+            results = await self.storage.search_skills(
+                query,
+                limit=limit,
+                namespace=namespace,
+                **extra_kwargs,
+            )
             return [{"item": r, "score": max(0.0, 1.0 - i * 0.05), "rank": i+1} for i, r in enumerate(results)]
 
         try:
             query_vector = await self.embedder.embed_text(query)
         except Exception:
             # Fallback if embedding fails
-            results = await self.storage.search_skills(query, limit=limit, namespace=namespace)
+            results = await self.storage.search_skills(
+                query,
+                limit=limit,
+                namespace=namespace,
+                **extra_kwargs,
+            )
             return [{"item": r, "score": max(0.0, 1.0 - i * 0.05), "rank": i+1} for i, r in enumerate(results)]
 
         # Fetch keyword results
-        keyword_results = await self.storage.search_skills(query=query, limit=50, namespace=namespace)
+        keyword_results = await self.storage.search_skills(
+            query=query,
+            limit=50,
+            namespace=namespace,
+            **extra_kwargs,
+        )
         
         # Fetch pure vector results (pass empty query)
-        vector_results = await self.storage.search_skills(query="", query_vector=query_vector, limit=50, namespace=namespace)
+        vector_results = await self.storage.search_skills(
+            query="",
+            query_vector=query_vector,
+            limit=50,
+            namespace=namespace,
+            **extra_kwargs,
+        )
 
         # RRF
         k = 60

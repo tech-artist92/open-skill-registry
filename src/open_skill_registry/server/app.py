@@ -9,7 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from open_skill_registry.config import RegistryConfig
 from open_skill_registry.server.db.session import close_db, init_db
-from open_skill_registry.server.routes import health, skills
+from open_skill_registry.server.routes import auth, health, namespaces, skills
 from open_skill_registry.server.services.cache_service import CacheService
 
 
@@ -90,6 +90,8 @@ def create_app(config: RegistryConfig | None = None) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(health.router, prefix="/api/v1")
+    app.include_router(auth.router)
+    app.include_router(namespaces.router)
     app.include_router(skills.router)
 
     return app

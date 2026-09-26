@@ -23,7 +23,8 @@ class SkillService:
         files: Dict[str, bytes], 
         explicit_slug: Optional[str] = None, 
         explicit_version: Optional[str] = None, 
-        created_by: str = "anonymous"
+        created_by: str = "anonymous",
+        visibility: Optional[str] = None,
     ) -> SkillVersion:
         
         # Path traversal check
@@ -88,7 +89,8 @@ class SkillService:
             parsed_frontmatter=frontmatter,
             instructions=instructions,
             embeddings=embedding,
-            model_name=provider.__class__.__name__
+            model_name=provider.__class__.__name__,
+            visibility=visibility,
         )
         
         await self.storage.tag_version(namespace, slug, version, "latest")

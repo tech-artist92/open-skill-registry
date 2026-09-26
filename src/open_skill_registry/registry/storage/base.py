@@ -23,7 +23,8 @@ class BaseStorage(ABC):
         parsed_frontmatter: Dict[str, Any],
         instructions: str,
         embeddings: Optional[List[float]] = None,
-        model_name: Optional[str] = None
+        model_name: Optional[str] = None,
+        visibility: Optional[str] = "PUBLIC",
     ) -> SkillVersion:
         pass
 
@@ -49,7 +50,9 @@ class BaseStorage(ABC):
         query: str,
         query_vector: Optional[List[float]] = None,
         limit: int = 10,
-        namespace: Optional[str] = None
+        namespace: Optional[str] = None,
+        allowed_namespaces: Optional[List[str]] = None,
+        is_admin: bool = False,
     ) -> List[SkillSummary]:
         pass
 
@@ -70,7 +73,15 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def list_skills(self, namespace: Optional[str] = None, page: int = 1, size: int = 20, sort: str = "updated") -> 'Page[SkillSummary]':
+    async def list_skills(
+        self,
+        namespace: Optional[str] = None,
+        page: int = 1,
+        size: int = 20,
+        sort: str = "updated",
+        allowed_namespaces: Optional[List[str]] = None,
+        is_admin: bool = False,
+    ) -> 'Page[SkillSummary]':
         pass
 
     @abstractmethod

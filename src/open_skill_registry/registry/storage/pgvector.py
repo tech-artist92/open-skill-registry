@@ -35,7 +35,8 @@ class PgVectorStorage(BaseStorage):
         parsed_frontmatter: Dict[str, Any],
         instructions: str,
         embeddings: Optional[List[float]] = None,
-        model_name: Optional[str] = None
+        model_name: Optional[str] = None,
+        visibility: Optional[str] = "PUBLIC",
     ) -> SkillVersion:
         async with self.session_maker() as session:
             ns = await self._get_or_create_namespace(session, namespace)
@@ -44,18 +45,22 @@ class PgVectorStorage(BaseStorage):
                 select(Skill).where(Skill.namespace_id == ns.id, Skill.slug == slug)
             )
             skill = result.scalar_one_or_none()
+            vis = visibility or getattr(ns, "visibility", "PUBLIC") or "PUBLIC"
             if not skill:
                 skill = Skill(
                     namespace_id=ns.id,
                     slug=slug,
                     name=name,
-                    description=description
+                    description=description,
+                    visibility=vis,
                 )
                 session.add(skill)
                 await session.flush()
             else:
                 skill.name = name
                 skill.description = description
+                if visibility:
+                    skill.visibility = visibility
                 skill.updated_at = get_utc_now()
 
             # Generate tsvector
@@ -189,7 +194,9 @@ class PgVectorStorage(BaseStorage):
         query: str,
         query_vector: Optional[List[float]] = None,
         limit: int = 10,
-        namespace: Optional[str] = None
+        namespace: Optional[str] = None,
+        allowed_namespaces: Optional[List[str]] = None,
+        is_admin: bool = False,
     ) -> List[SkillSummary]:
         async with self.session_maker() as session:
             # We construct a query using func.ts_rank_cd and optionally vector cosine distance.
@@ -210,6 +217,17 @@ class PgVectorStorage(BaseStorage):
             
             if namespace:
                 stmt = stmt.where(Namespace.slug == namespace)
+
+            if not is_admin:
+                if allowed_namespaces:
+                    stmt = stmt.where(
+                        or_(
+                            Skill.visibility == "PUBLIC",
+                            Namespace.slug.in_(allowed_namespaces),
+                        )
+                    )
+                else:
+                    stmt = stmt.where(Skill.visibility == "PUBLIC")
             
             # If not pure vector search (i.e. query is provided), filter by text
             if query and not query_vector:
@@ -330,13 +348,32 @@ class PgVectorStorage(BaseStorage):
             v.is_yanked = True
             await session.commit()
 
-    async def list_skills(self, namespace: Optional[str] = None, page: int = 1, size: int = 20, sort: str = "updated") -> Any:
+    async def list_skills(
+        self,
+        namespace: Optional[str] = None,
+        page: int = 1,
+        size: int = 20,
+        sort: str = "updated",
+        allowed_namespaces: Optional[List[str]] = None,
+        is_admin: bool = False,
+    ) -> Any:
         from open_skill_registry.models.response import Page
         async with self.session_maker() as session:
             stmt = select(Skill, Namespace.slug.label("ns_slug"), SkillVersion).join(Namespace)
             stmt = stmt.outerjoin(SkillVersion, Skill.latest_version_id == SkillVersion.id)
             if namespace:
                 stmt = stmt.where(Namespace.slug == namespace)
+
+            if not is_admin:
+                if allowed_namespaces:
+                    stmt = stmt.where(
+                        or_(
+                            Skill.visibility == "PUBLIC",
+                            Namespace.slug.in_(allowed_namespaces),
+                        )
+                    )
+                else:
+                    stmt = stmt.where(Skill.visibility == "PUBLIC")
             
             # total count
             count_stmt = select(func.count()).select_from(stmt.subquery())

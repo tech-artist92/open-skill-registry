@@ -2,15 +2,17 @@ from pathlib import Path
 
 import typer
 
-from open_skill_registry.cli.commands import init, serve, push, search, info, pull, verify, tag
+from open_skill_registry.cli.commands import init, serve, push, search, info, pull, verify, tag, login, namespace
 
 app = typer.Typer(name="osr", help="Open Skill Registry CLI", no_args_is_help=True)
 
 app.add_typer(init.app, name="init", help="Initialize configuration")
 app.add_typer(serve.app, name="serve", help="Start the FastAPI server")
 app.add_typer(push.app, name="push", help="Push a skill to the registry")
+app.add_typer(namespace.app, name="namespace", help="Manage namespaces")
 
 # Add the functions directly as commands
+app.command(name="login", help="Log in to an Open Skill Registry instance")(login.login)
 app.command(name="search", help="Search for skills in the registry")(search.search)
 app.command(name="info", help="Get detailed information about a skill")(info.info)
 app.command(name="pull", help="Pull a skill from the registry to local disk")(pull.pull)
@@ -43,6 +45,29 @@ def main(
     ctx.obj["registry_url"] = registry_url
     ctx.obj["api_key"] = api_key
     ctx.obj["format"] = format
+
+    # Auto-load client config from file if not explicitly passed
+    cfg_to_load = config
+    if not cfg_to_load:
+        for p in [Path("osr.config.yaml"), Path(".osr/config.yaml"), Path.home() / ".osr" / "config.yaml"]:
+            if p.exists() and p.is_file():
+                cfg_to_load = p
+                break
+    if cfg_to_load and cfg_to_load.exists():
+        try:
+            import yaml
+            with open(cfg_to_load, "r", encoding="utf-8") as f:
+                d = yaml.safe_load(f) or {}
+                if isinstance(d, dict) and "client" in d and isinstance(d["client"], dict):
+                    c = d["client"]
+                    if not ctx.obj.get("registry_url") and c.get("registry_url"):
+                        ctx.obj["registry_url"] = c["registry_url"]
+                    if not ctx.obj.get("api_key") and c.get("api_key"):
+                        ctx.obj["api_key"] = c["api_key"]
+                    if not ctx.obj.get("default_namespace") and c.get("default_namespace"):
+                        ctx.obj["default_namespace"] = c["default_namespace"]
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     app()

@@ -41,7 +41,7 @@ def mock_handler(request: httpx.Request) -> httpx.Response:
     if method == "POST" and path == "/api/v1/skills/publish":
         if b"duplicate" in request.content:
             return httpx.Response(409, json={"detail": "Duplicate version"})
-        if b"bad" in request.content:
+        if b"bad request" in request.content:
             return httpx.Response(400, json={"detail": "Bad request"})
         return httpx.Response(200, json={"data": {"status": "published"}})
 

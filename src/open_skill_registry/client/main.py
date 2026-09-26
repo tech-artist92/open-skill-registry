@@ -219,6 +219,67 @@ class AsyncSkillRegistryClient:
         response = await self._client.post("/api/v1/skills/publish", data=data, files=files)
         return _handle_response(response)
 
+    async def create_namespace(
+        self,
+        slug: str,
+        name: str,
+        description: Optional[str] = None,
+        visibility: str = "PUBLIC"
+    ) -> Any:
+        body = {"slug": slug, "name": name, "description": description, "visibility": visibility}
+        response = await self._client.post("/api/v1/namespaces", json=body)
+        return _handle_response(response)
+
+    async def list_namespaces(self, page: int = 1, size: int = 20) -> Any:
+        params = {"page": page, "size": size}
+        response = await self._client.get("/api/v1/namespaces", params=params)
+        return _handle_response(response)
+
+    async def get_namespace(self, slug: str) -> Any:
+        response = await self._client.get(f"/api/v1/namespaces/{slug}")
+        return _handle_response(response)
+
+    async def update_namespace(
+        self,
+        slug: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        visibility: Optional[str] = None
+    ) -> Any:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if visibility is not None:
+            body["visibility"] = visibility
+        response = await self._client.put(f"/api/v1/namespaces/{slug}", json=body)
+        return _handle_response(response)
+
+    async def create_key(
+        self,
+        label: str,
+        namespace_slug: Optional[str] = None,
+        permissions: Optional[list[str]] = None,
+        expires_at: Optional[Any] = None
+    ) -> Any:
+        body = {"label": label, "namespace_slug": namespace_slug, "permissions": permissions or ["READ", "WRITE"]}
+        if expires_at is not None:
+            body["expires_at"] = expires_at.isoformat() if hasattr(expires_at, "isoformat") else str(expires_at)
+        response = await self._client.post("/api/v1/keys", json=body)
+        return _handle_response(response)
+
+    async def list_keys(self, namespace: Optional[str] = None) -> Any:
+        params = {}
+        if namespace:
+            params["namespace"] = namespace
+        response = await self._client.get("/api/v1/keys", params=params)
+        return _handle_response(response)
+
+    async def revoke_key(self, key_id: str) -> Any:
+        response = await self._client.delete(f"/api/v1/keys/{key_id}")
+        return _handle_response(response)
+
 class SkillRegistryClient:
     """
     A synchronous client for the Open Skill Registry API.
@@ -396,3 +457,65 @@ class SkillRegistryClient:
         
         response = self._client.post("/api/v1/skills/publish", data=data, files=files)
         return _handle_response(response)
+
+    def create_namespace(
+        self,
+        slug: str,
+        name: str,
+        description: Optional[str] = None,
+        visibility: str = "PUBLIC"
+    ) -> Any:
+        body = {"slug": slug, "name": name, "description": description, "visibility": visibility}
+        response = self._client.post("/api/v1/namespaces", json=body)
+        return _handle_response(response)
+
+    def list_namespaces(self, page: int = 1, size: int = 20) -> Any:
+        params = {"page": page, "size": size}
+        response = self._client.get("/api/v1/namespaces", params=params)
+        return _handle_response(response)
+
+    def get_namespace(self, slug: str) -> Any:
+        response = self._client.get(f"/api/v1/namespaces/{slug}")
+        return _handle_response(response)
+
+    def update_namespace(
+        self,
+        slug: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        visibility: Optional[str] = None
+    ) -> Any:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if visibility is not None:
+            body["visibility"] = visibility
+        response = self._client.put(f"/api/v1/namespaces/{slug}", json=body)
+        return _handle_response(response)
+
+    def create_key(
+        self,
+        label: str,
+        namespace_slug: Optional[str] = None,
+        permissions: Optional[list[str]] = None,
+        expires_at: Optional[Any] = None
+    ) -> Any:
+        body = {"label": label, "namespace_slug": namespace_slug, "permissions": permissions or ["READ", "WRITE"]}
+        if expires_at is not None:
+            body["expires_at"] = expires_at.isoformat() if hasattr(expires_at, "isoformat") else str(expires_at)
+        response = self._client.post("/api/v1/keys", json=body)
+        return _handle_response(response)
+
+    def list_keys(self, namespace: Optional[str] = None) -> Any:
+        params = {}
+        if namespace:
+            params["namespace"] = namespace
+        response = self._client.get("/api/v1/keys", params=params)
+        return _handle_response(response)
+
+    def revoke_key(self, key_id: str) -> Any:
+        response = self._client.delete(f"/api/v1/keys/{key_id}")
+        return _handle_response(response)
+

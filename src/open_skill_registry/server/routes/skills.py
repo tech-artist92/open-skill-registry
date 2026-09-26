@@ -11,8 +11,28 @@ from open_skill_registry.server.db.session import get_db_session
 from open_skill_registry.server.services.skill_service import SkillService
 from open_skill_registry.models.exceptions import DuplicateVersionError
 from open_skill_registry.models.response import ResponseEnvelope
+from open_skill_registry.server.middleware.auth import (
+    AuthContext,
+    get_auth_context,
+    verify_namespace_write,
+)
 
 router = APIRouter(prefix="/api/v1/skills", tags=["skills"])
+
+
+def check_skill_read_permission(skill, namespace: str, auth: AuthContext) -> None:
+    """Ensure caller has permission to view skill."""
+    if getattr(skill, "visibility", "PUBLIC") != "PUBLIC":
+        if not auth.is_admin and auth.namespace_slug != namespace:
+            if not auth.is_authenticated:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Authentication required",
+                )
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: insufficient permissions for namespace",
+            )
 
 @router.post("/publish", status_code=201)
 async def publish_skill(
@@ -21,8 +41,12 @@ async def publish_skill(
     namespace: str = Form("public"),
     slug: Optional[str] = Form(None),
     version: Optional[str] = Form(None),
-    db: AsyncSession = Depends(get_db_session)
+    visibility: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_db_session),
+    auth: AuthContext = Depends(get_auth_context),
 ):
+    verify_namespace_write(auth, namespace)
+
     config = getattr(request.app.state, "config", None)
     storage = getattr(request.app.state, "storage", None)
     if storage is None and config:
@@ -54,7 +78,8 @@ async def publish_skill(
             namespace=namespace,
             files=files,
             explicit_slug=slug,
-            explicit_version=version
+            explicit_version=version,
+            visibility=visibility,
         )
         final_slug = slug
         if not final_slug:
@@ -82,15 +107,27 @@ async def search_skills(
     request: Request,
     q: str = Query(...),
     limit: int = Query(10, ge=1, le=100),
-    namespace: Optional[str] = Query(None)
+    namespace: Optional[str] = Query(None),
+    auth: AuthContext = Depends(get_auth_context),
 ):
     config = getattr(request.app.state, "config", None)
     storage = getattr(request.app.state, "storage", None)
     if not storage:
         raise HTTPException(status_code=500, detail="Storage not initialized")
     
+    allowed_namespaces = (
+        [auth.namespace_slug]
+        if (auth.is_authenticated and auth.namespace_slug)
+        else ([] if not auth.is_admin else None)
+    )
     search_service = SearchService(storage, config)
-    results = await search_service.search(query=q, limit=limit, namespace=namespace)
+    results = await search_service.search(
+        query=q,
+        limit=limit,
+        namespace=namespace,
+        allowed_namespaces=allowed_namespaces,
+        is_admin=auth.is_admin,
+    )
     
     # Standard envelope expects items in data
     # But brief says: Data has `items` and `total`
@@ -110,20 +147,34 @@ async def list_skills(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     sort: str = Query("updated"),
-    namespace: Optional[str] = Query(None)
+    namespace: Optional[str] = Query(None),
+    auth: AuthContext = Depends(get_auth_context),
 ):
     storage = getattr(request.app.state, "storage", None)
     if not storage:
         raise HTTPException(status_code=500, detail="Storage not initialized")
     
-    page_result = await storage.list_skills(namespace=namespace, page=page, size=size, sort=sort)
+    allowed_namespaces = (
+        [auth.namespace_slug]
+        if (auth.is_authenticated and auth.namespace_slug)
+        else ([] if not auth.is_admin else None)
+    )
+    page_result = await storage.list_skills(
+        namespace=namespace,
+        page=page,
+        size=size,
+        sort=sort,
+        allowed_namespaces=allowed_namespaces,
+        is_admin=auth.is_admin,
+    )
     return ResponseEnvelope(data=page_result)
 
 @router.get("/{namespace}/{slug}")
 async def get_skill(
     request: Request,
     namespace: str,
-    slug: str
+    slug: str,
+    auth: AuthContext = Depends(get_auth_context),
 ):
     storage = getattr(request.app.state, "storage", None)
     if not storage:
@@ -131,6 +182,7 @@ async def get_skill(
     skill = await storage.get_skill(namespace, slug)
     if not skill:
         raise HTTPException(status_code=404, detail="Skill not found")
+    check_skill_read_permission(skill, namespace, auth)
     
     return ResponseEnvelope(data=skill)
 
@@ -140,7 +192,8 @@ async def get_skill_version(
     response: Response,
     namespace: str,
     slug: str,
-    version: str
+    version: str,
+    auth: AuthContext = Depends(get_auth_context),
 ):
     storage = getattr(request.app.state, "storage", None)
     if not storage:
@@ -148,6 +201,7 @@ async def get_skill_version(
     skill = await storage.get_skill(namespace, slug)
     if not skill:
         raise HTTPException(status_code=404, detail="Skill not found")
+    check_skill_read_permission(skill, namespace, auth)
         
     sv = await storage.get_skill_version(namespace, slug, version)
     if not sv:
@@ -175,11 +229,16 @@ async def get_skill_instructions(
     response: Response,
     namespace: str,
     slug: str,
-    version: str
+    version: str,
+    auth: AuthContext = Depends(get_auth_context),
 ):
     storage = getattr(request.app.state, "storage", None)
     if not storage:
         raise HTTPException(status_code=500, detail="Storage not initialized")
+    skill = await storage.get_skill(namespace, slug)
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    check_skill_read_permission(skill, namespace, auth)
     sv = await storage.get_skill_version(namespace, slug, version)
     if not sv:
         raise HTTPException(status_code=404, detail="Version not found")
@@ -200,7 +259,8 @@ async def get_skill_file(
     namespace: str,
     slug: str,
     version: str,
-    path: str = Query(...)
+    path: str = Query(...),
+    auth: AuthContext = Depends(get_auth_context),
 ):
     if ".." in path or path.startswith("/") or "\\" in path:
         raise HTTPException(status_code=400, detail="Invalid path")
@@ -208,6 +268,11 @@ async def get_skill_file(
     storage = getattr(request.app.state, "storage", None)
     if not storage:
         raise HTTPException(status_code=500, detail="Storage not initialized")
+    skill = await storage.get_skill(namespace, slug)
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    check_skill_read_permission(skill, namespace, auth)
+
     sv = await storage.get_skill_version(namespace, slug, version)
     if not sv:
         raise HTTPException(status_code=404, detail="Version not found")
@@ -229,8 +294,10 @@ async def assign_tag(
     namespace: str,
     slug: str,
     tag: str,
-    body: TagVersionRequest
+    body: TagVersionRequest,
+    auth: AuthContext = Depends(get_auth_context),
 ):
+    verify_namespace_write(auth, namespace)
     storage = getattr(request.app.state, "storage", None)
     if not storage:
         raise HTTPException(status_code=500, detail="Storage not initialized")
@@ -256,12 +323,17 @@ async def get_tag_shortcut(
     request: Request,
     namespace: str,
     slug: str,
-    tag: str
+    tag: str,
+    auth: AuthContext = Depends(get_auth_context),
 ):
     storage = getattr(request.app.state, "storage", None)
     if not storage:
         raise HTTPException(status_code=500, detail="Storage not initialized")
-    
+    skill = await storage.get_skill(namespace, slug)
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    check_skill_read_permission(skill, namespace, auth)
+
     sv = await storage.resolve_version(namespace, slug, tag)
     if not sv:
         raise HTTPException(status_code=404, detail="Tag not found or could not be resolved")
@@ -283,12 +355,17 @@ async def resolve_skill(
     slug: str,
     hash: Optional[str] = Query(None),
     version: Optional[str] = Query(None),
-    tag: Optional[str] = Query(None)
+    tag: Optional[str] = Query(None),
+    auth: AuthContext = Depends(get_auth_context),
 ):
     storage = getattr(request.app.state, "storage", None)
     if not storage:
         raise HTTPException(status_code=500, detail="Storage not initialized")
-    
+    skill = await storage.get_skill(namespace, slug)
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    check_skill_read_permission(skill, namespace, auth)
+
     sv = None
     if hash:
         sv = await storage.resolve_by_hash(namespace, slug, hash)
