@@ -81,7 +81,10 @@ class RegistryConfig(BaseSettings):
 
         paths_to_try: List[Path] = []
         if isinstance(config_source, (str, Path)):
-            paths_to_try.append(Path(config_source))
+            path = Path(config_source)
+            if not path.exists() or not path.is_file():
+                raise FileNotFoundError(f"Configuration file not found: {path}")
+            paths_to_try.append(path)
         else:
             paths_to_try = [
                 Path("osr.config.yaml"),
@@ -95,5 +98,5 @@ class RegistryConfig(BaseSettings):
                     data = yaml.safe_load(f) or {}
                 return cls(**data)
 
-        # Fallback to default if no file found
+        # Fallback to default if no file found and not explicitly requested
         return cls()

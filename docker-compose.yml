@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
   db:
-    image: ankane/pgvector:v0.5.1
+    image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: osr
+      POSTGRES_PASSWORD: osr_secret
       POSTGRES_DB: osr
     ports:
       - "5432:5432"
@@ -20,14 +20,14 @@ services:
   server:
     build: .
     ports:
-      - "8000:8000"
+      - "8080:8080"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/osr
-      - REDIS_URL=redis://redis:6379/0
+      - OSR_DATABASE__URL=postgresql+asyncpg://osr:osr_secret@db:5432/osr
+      - OSR_CACHE__URL=redis://redis:6379/0
     depends_on:
       - db
       - redis
-    command: uvicorn open_skill_registry.server.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn open_skill_registry.server.main:app --host 0.0.0.0 --port 8080 --reload
     volumes:
       - ./src:/app/src
 

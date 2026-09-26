@@ -44,3 +44,16 @@ def test_config_load_default_fallback():
     assert config is not None
     assert hasattr(config, "database")
     assert hasattr(config, "server")
+
+
+def test_config_load_explicit_path_not_found():
+    import pytest
+    with pytest.raises(FileNotFoundError):
+        RegistryConfig.load("/path/to/non/existent/config.yaml")
+
+
+def test_config_env_override(monkeypatch):
+    monkeypatch.setenv("OSR_DATABASE__URL", "postgresql+asyncpg://user:pass@localhost:5432/mydb")
+    config = RegistryConfig.load()
+    assert config.database.url == "postgresql+asyncpg://user:pass@localhost:5432/mydb"
+

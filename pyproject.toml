@@ -44,8 +44,14 @@ server = [
     "asyncpg",
     "pgvector",
 ]
+dev = [
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+]
 all = [
-    "open-skill-registry[cli,server]",
+    "open-skill-registry[cli,server,dev]",
 ]
 
 [project.scripts]
