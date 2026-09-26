@@ -13,14 +13,23 @@ from open_skill_registry.server.routes import health, skills
 from open_skill_registry.server.services.cache_service import CacheService
 
 
+from open_skill_registry.registry.storage.factory import get_storage
+from open_skill_registry.server.db.session import get_async_engine
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     await init_db()
     # Assuming config is in app.state
-    cache_config = getattr(app.state.config, "cache", None) if hasattr(app.state, "config") else None
+    config = getattr(app.state, "config", None)
+    cache_config = getattr(config, "cache", None) if config else None
     
     app.state.cache_service = CacheService(config=cache_config)
+    
+    if config:
+        import open_skill_registry.server.db.session as db_session
+        app.state.storage = get_storage(config, db_session.global_engine)
+    
     yield
     # Shutdown
     await close_db()

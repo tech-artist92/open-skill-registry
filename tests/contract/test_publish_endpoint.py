@@ -1,16 +1,26 @@
 import io
 import zipfile
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
+import pytest_asyncio
 from open_skill_registry.server.app import create_app
+from open_skill_registry.server.db.session import init_db
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def setup_db():
+    await init_db()
 
 @pytest.fixture
 def app():
-    return create_app()
+    app_instance = create_app()
+    if hasattr(app_instance.state, "config") and app_instance.state.config:
+        if hasattr(app_instance.state.config, "search") and app_instance.state.config.search:
+            app_instance.state.config.search.provider = "none"
+    return app_instance
 
 @pytest.mark.asyncio
 async def test_publish_skill_single_file(app):
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Mocking the service layer might be needed, or an in-memory DB/storage.
         # Assuming app is configured with in-memory DB for tests.
         response = await client.post(
@@ -24,7 +34,7 @@ async def test_publish_skill_single_file(app):
 
 @pytest.mark.asyncio
 async def test_publish_skill_duplicate(app):
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         files = {"file": ("SKILL.md", b"---\nname: dup skill\nversion: 1.0.0\ndescription: test\n---\ncontent", "text/markdown")}
         # First publish
         await client.post(
@@ -41,11 +51,11 @@ async def test_publish_skill_duplicate(app):
             files=files2
         )
         assert response.status_code == 409
-        assert "duplicate" in response.json()["error"]["message"].lower()
+        assert "duplicate" in response.json()["error"].lower()
 
 @pytest.mark.asyncio
 async def test_publish_skill_missing_skill_md(app):
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
             "/api/v1/skills/publish",
             data={"namespace": "public", "slug": "bad-skill"},
@@ -55,7 +65,7 @@ async def test_publish_skill_missing_skill_md(app):
 
 @pytest.mark.asyncio
 async def test_publish_skill_path_traversal(app):
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # We need a zip file containing traversal
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w") as zf:
@@ -73,7 +83,7 @@ async def test_publish_skill_path_traversal(app):
 
 @pytest.mark.asyncio
 async def test_publish_skill_valid_zip(app):
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w") as zf:
             zf.writestr("SKILL.md", b"---\nname: zip skill\nversion: 2.0.0\ndescription: test\n---\n")

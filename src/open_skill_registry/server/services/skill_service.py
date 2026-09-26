@@ -3,11 +3,16 @@ import zipfile
 import yaml
 from typing import Dict, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from open_skill_registry.models.domain import SkillVersion
+from open_skill_registry.server.db.models import SkillVersion
 from open_skill_registry.models.exceptions import DuplicateVersionError
+from open_skill_registry.registry.core.validator import validate_package_or_raise
+from open_skill_registry.registry.core.manifest import compute_manifest
+from open_skill_registry.registry.embeddings.factory import get_embedding_provider
+from open_skill_registry.config import RegistryConfig
+from open_skill_registry.registry.storage.base import BaseStorage
 
 class SkillService:
-    def __init__(self, db_session: AsyncSession, storage: Any, config: Any):
+    def __init__(self, db_session: AsyncSession, storage: BaseStorage, config: RegistryConfig):
         self.db_session = db_session
         self.storage = storage
         self.config = config
@@ -21,7 +26,13 @@ class SkillService:
         created_by: str = "anonymous"
     ) -> SkillVersion:
         
-        self._validate_files(files)
+        # Path traversal check
+        for filepath in files:
+            if ".." in filepath or filepath.startswith("/"):
+                raise ValueError(f"Path traversal detected: {filepath}")
+
+        # Core validation
+        validate_package_or_raise(files)
         
         frontmatter = self._parse_frontmatter(files.get("SKILL.md", b""))
         
@@ -35,39 +46,46 @@ class SkillService:
         elif frontmatter.get("version"):
             version = str(frontmatter["version"])
         else:
-            latest = await self.storage.get_latest_version(self.db_session, namespace, slug)
-            if latest and latest.version:
-                version = self._increment_patch(latest.version)
+            detail = await self.storage.get_skill(namespace, slug)
+            if detail and detail.versions:
+                # Assume the last in list or sort them, for simplicity just take the last or `latest_version` if it exists
+                latest_ver = getattr(detail, 'latest_version', detail.versions[-1] if detail.versions else None)
+                if latest_ver:
+                    version = self._increment_patch(latest_ver)
 
         # Check for duplicates
-        if await self.storage.skill_version_exists(self.db_session, namespace, slug, version):
-            raise DuplicateVersionError(f"Version {version} already exists for {namespace}/{slug}")
+        existing = await self.storage.get_skill_version(namespace, slug, version)
+        if existing:
+            raise DuplicateVersionError(f"Duplicate version {version} already exists for {namespace}/{slug}")
 
-        manifest = self._compute_manifest(files)
-        embedding = await self._get_embedding(name, frontmatter.get("description", ""))
+        manifest = compute_manifest(files)
         
-        # We need a SkillVersion object
-        skill_version = SkillVersion(
+        provider_type = "fastembed"
+        model_name = None
+        if hasattr(self.config, 'search') and self.config.search:
+            provider_type = getattr(self.config.search, 'provider', "fastembed")
+            model_name = getattr(self.config.search, 'model', None)
+        
+        provider = get_embedding_provider(provider_type=provider_type, model_name=model_name)
+        
+        text_for_embedding = f"{name}\n\n{frontmatter.get('description', '')}"
+        embedding = await provider.embed_text(text_for_embedding)
+        
+        saved_version = await self.storage.save_skill_version(
             namespace=namespace,
             slug=slug,
-            version=version,
+            name=name,
             description=frontmatter.get("description", ""),
-            tags=frontmatter.get("tags", []),
-            created_by=created_by,
+            version=version,
+            manifest=manifest,
+            files=files,
+            parsed_frontmatter=frontmatter,
+            instructions=frontmatter.get("instructions", ""),
+            embeddings=embedding,
+            model_name=provider.__class__.__name__
         )
         
-        # Store metadata
-        # ... logic to save to database via storage ...
-        
-        return skill_version
-
-    def _validate_files(self, files: Dict[str, bytes]) -> None:
-        if "SKILL.md" not in files:
-            raise ValueError("Missing SKILL.md in package")
-        
-        for filepath in files:
-            if ".." in filepath or filepath.startswith("/"):
-                raise ValueError(f"Path traversal detected: {filepath}")
+        return saved_version, namespace, slug
 
     def _parse_frontmatter(self, content: bytes) -> Dict[str, Any]:
         text = content.decode("utf-8")
@@ -92,9 +110,3 @@ class SkillService:
             except ValueError:
                 pass
         return version
-
-    def _compute_manifest(self, files: Dict[str, bytes]) -> Any:
-        return {}
-
-    async def _get_embedding(self, name: str, description: str) -> list[float]:
-        return [0.0]

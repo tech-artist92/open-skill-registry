@@ -29,6 +29,7 @@ dependencies = [
     "httpx",
     "pydantic>=2.8.0",
     "pydantic-settings",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]

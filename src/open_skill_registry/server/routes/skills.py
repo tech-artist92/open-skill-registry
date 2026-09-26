@@ -6,8 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from open_skill_registry.server.db.session import get_db_session
 from open_skill_registry.server.services.skill_service import SkillService
 from open_skill_registry.models.exceptions import DuplicateVersionError
+from open_skill_registry.models.response import ResponseEnvelope
 
-router = APIRouter(prefix="/skills", tags=["skills"])
+router = APIRouter(prefix="/api/v1/skills", tags=["skills"])
 
 @router.post("/publish", status_code=201)
 async def publish_skill(
@@ -19,7 +20,11 @@ async def publish_skill(
     db: AsyncSession = Depends(get_db_session)
 ):
     config = getattr(request.app.state, "config", None)
-    storage = getattr(request.app.state, "storage", None) # Assuming this is or will be added to app.state
+    storage = getattr(request.app.state, "storage", None)
+    if storage is None and config:
+        from open_skill_registry.registry.storage.factory import get_storage
+        import open_skill_registry.server.db.session as db_session
+        storage = get_storage(config, db_session.global_engine)
 
     files: Dict[str, bytes] = {}
     content = await file.read()
@@ -28,7 +33,6 @@ async def publish_skill(
         try:
             with zipfile.ZipFile(io.BytesIO(content)) as zf:
                 for name in zf.namelist():
-                    # Check for path traversal early here too
                     if ".." in name or name.startswith("/"):
                         raise HTTPException(status_code=400, detail="Path traversal detected in zip")
                     if not zf.getinfo(name).is_dir():
@@ -42,7 +46,7 @@ async def publish_skill(
     service = SkillService(db, storage, config)
     
     try:
-        skill_version = await service.publish_skill(
+        skill_version, final_namespace, final_slug = await service.publish_skill(
             namespace=namespace,
             files=files,
             explicit_slug=slug,
@@ -53,6 +57,15 @@ async def publish_skill(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
         
-    return {"data": {"version": skill_version.version, "slug": skill_version.slug, "namespace": skill_version.namespace}}
+    return ResponseEnvelope(
+        code=0,
+        msg="success",
+        data={
+            "namespace": final_namespace,
+            "slug": final_slug,
+            "version": skill_version.version,
+            "content_hash": getattr(skill_version, "content_hash", "")
+        }
+    )
 
 # Note: The test for duplicate might need 409 status code. Let's adjust the exception handling.
