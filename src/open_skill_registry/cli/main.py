@@ -2,13 +2,19 @@ from pathlib import Path
 
 import typer
 
-from open_skill_registry.cli.commands import init, serve, push
+from open_skill_registry.cli.commands import init, serve, push, search, info, pull, verify
 
 app = typer.Typer(name="osr", help="Open Skill Registry CLI", no_args_is_help=True)
 
 app.add_typer(init.app, name="init", help="Initialize configuration")
 app.add_typer(serve.app, name="serve", help="Start the FastAPI server")
 app.add_typer(push.app, name="push", help="Push a skill to the registry")
+
+# Add the functions directly as commands
+app.command(name="search", help="Search for skills in the registry")(search.search)
+app.command(name="info", help="Get detailed information about a skill")(info.info)
+app.command(name="pull", help="Pull a skill from the registry to local disk")(pull.pull)
+app.command(name="verify", help="Verify cryptographic hashes of a local skill package")(verify.verify)
 
 def version_callback(value: bool):
     if value:
@@ -36,3 +42,6 @@ def main(
     ctx.obj["registry_url"] = registry_url
     ctx.obj["api_key"] = api_key
     ctx.obj["format"] = format
+
+if __name__ == "__main__":
+    app()

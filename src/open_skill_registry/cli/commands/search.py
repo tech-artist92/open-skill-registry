@@ -1,0 +1,48 @@
+import typer
+from rich.console import Console
+from rich.table import Table
+import json
+from open_skill_registry.client.main import SkillRegistryClient
+
+app = typer.Typer()
+console = Console()
+
+
+def search(
+    ctx: typer.Context,
+    query: str,
+    limit: int = typer.Option(10, "--limit", help="Maximum number of results to return."),
+    namespace: str = typer.Option(None, "--namespace", help="Filter by namespace.")
+):
+    """Search for skills in the registry."""
+    client = SkillRegistryClient(
+        base_url=ctx.obj.get("registry_url"),
+        api_key=ctx.obj.get("api_key")
+    )
+    
+    try:
+        results = client.search(query=query, limit=limit, namespace=namespace)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1)
+
+    out_format = ctx.obj.get("format", "text")
+    if out_format == "json":
+        console.print_json(data=results)
+    else:
+        table = Table(title="Search Results")
+        table.add_column("NAME", style="cyan")
+        table.add_column("VERSION", style="magenta")
+        table.add_column("NAMESPACE", style="green")
+        table.add_column("SIMILARITY", justify="right")
+        table.add_column("DESCRIPTION")
+
+        for item in results:
+            table.add_row(
+                item.get("name", item.get("slug", "")),
+                item.get("latest_version", "N/A"),
+                item.get("namespace", ""),
+                f"{item.get('similarity', 0.0):.2f}" if "similarity" in item else "N/A",
+                item.get("description", "")
+            )
+        console.print(table)
