@@ -19,35 +19,36 @@ class SearchService:
             return None
             
         from open_skill_registry.registry.embeddings.factory import get_embedding_provider
-        return get_embedding_provider(self.config)
+        model = getattr(self.config.search, 'model', None)
+        return get_embedding_provider(provider_type=provider, model_name=model)
+
 
     async def search(self, query: str, limit: int = 10, namespace: Optional[str] = None) -> List[dict]:
         # Syntactic fallback
         if not self.embedder:
             results = await self.storage.search_skills(query, limit=limit, namespace=namespace)
-            return [{"item": r, "score": 1.0, "rank": i+1} for i, r in enumerate(results)]
+            return [{"item": r, "score": max(0.0, 1.0 - i * 0.05), "rank": i+1} for i, r in enumerate(results)]
 
         try:
             query_vector = await self.embedder.embed_text(query)
         except Exception:
             # Fallback if embedding fails
             results = await self.storage.search_skills(query, limit=limit, namespace=namespace)
-            return [{"item": r, "score": 1.0, "rank": i+1} for i, r in enumerate(results)]
+            return [{"item": r, "score": max(0.0, 1.0 - i * 0.05), "rank": i+1} for i, r in enumerate(results)]
 
         # Fetch keyword results
-        keyword_results = await self.storage.search_skills(query, limit=50, namespace=namespace)
+        keyword_results = await self.storage.search_skills(query=query, limit=50, namespace=namespace)
         
-        # Fetch vector results (hack: pass random query string that won't match keyword boost easily or just let storage do it)
-        # Actually, let's just let storage do the vector search by passing a dummy query to avoid keyword overlap if we only want vector, 
-        # but the existing storage mixes them. 
-        # If storage mixes them, RRF is redundant, but we MUST implement RRF here.
-        # Let's assume we do RRF over keyword_results and vector_results.
-        vector_results = await self.storage.search_skills("~~~", query_vector=query_vector, limit=50, namespace=namespace)
+        # Fetch pure vector results (pass empty query)
+        vector_results = await self.storage.search_skills(query="", query_vector=query_vector, limit=50, namespace=namespace)
 
         # RRF
         k = 60
         scores = {}
         items = {}
+        
+        # Max RRF score would be 2 / (k + 1) if an item is rank 1 in both
+        max_rrf = 2.0 / (k + 1)
 
         for rank, item in enumerate(keyword_results):
             key = (item.namespace, item.slug)
@@ -70,7 +71,7 @@ class SearchService:
         for i, (key, score) in enumerate(sorted_results):
             final.append({
                 "item": items[key],
-                "score": score,
+                "score": score / max_rrf,  # Normalize to [0.0, 1.0]
                 "rank": i + 1
             })
 

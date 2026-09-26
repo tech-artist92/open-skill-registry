@@ -34,7 +34,7 @@ class SkillService:
         # Core validation
         validate_package_or_raise(files)
         
-        raw_content = files.get("SKILL.md", b"").decode("utf-8")
+        raw_content = files.get("SKILL.md", b"").decode("utf-8", errors="replace")
         frontmatter = self._parse_frontmatter(files.get("SKILL.md", b""))
         instructions = ""
         if raw_content.startswith("---"):
@@ -96,7 +96,7 @@ class SkillService:
         return saved_version
 
     def _parse_frontmatter(self, content: bytes) -> Dict[str, Any]:
-        text = content.decode("utf-8")
+        text = content.decode("utf-8", errors="replace")
         if text.startswith("---"):
             parts = text.split("---", 2)
             if len(parts) >= 3:

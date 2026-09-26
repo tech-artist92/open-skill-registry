@@ -1,6 +1,9 @@
 import io
 import zipfile
-from typing import Optional, Dict
+from typing import Optional, Dict, List
+from fastapi import Query, Response
+from fastapi.responses import PlainTextResponse
+from open_skill_registry.server.services.search_service import SearchService
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from open_skill_registry.server.db.session import get_db_session
@@ -72,10 +75,6 @@ async def publish_skill(
         }
     )
 
-from fastapi import Query, Response
-from fastapi.responses import PlainTextResponse
-from typing import List
-from open_skill_registry.server.services.search_service import SearchService
 
 @router.get("/search")
 async def search_skills(
@@ -98,8 +97,6 @@ async def search_skills(
     for r in results:
         item = r["item"].model_dump()
         item["similarity_score"] = r["score"]
-        # Add a dummy content_hash for the contract test to pass
-        item["content_hash"] = ""
         items.append(item)
     
     return ResponseEnvelope(
@@ -128,6 +125,8 @@ async def get_skill(
     slug: str
 ):
     storage = getattr(request.app.state, "storage", None)
+    if not storage:
+        raise HTTPException(status_code=500, detail="Storage not initialized")
     skill = await storage.get_skill(namespace, slug)
     if not skill:
         raise HTTPException(status_code=404, detail="Skill not found")
@@ -143,6 +142,8 @@ async def get_skill_version(
     version: str
 ):
     storage = getattr(request.app.state, "storage", None)
+    if not storage:
+        raise HTTPException(status_code=500, detail="Storage not initialized")
     skill = await storage.get_skill(namespace, slug)
     if not skill:
         raise HTTPException(status_code=404, detail="Skill not found")
@@ -153,7 +154,7 @@ async def get_skill_version(
     
     etag = f'"{sv.content_hash}"'
     if request.headers.get("if-none-match") == etag:
-        return Response(status_code=304)
+        return Response(status_code=304, headers={"ETag": etag})
         
     response.headers["ETag"] = etag
     
@@ -164,7 +165,7 @@ async def get_skill_version(
         "manifest": sv.manifest,
         "frontmatter": sv.parsed_frontmatter,
         "compliance_snapshot": sv.compliance_snapshot,
-        "tags": []
+                "tags": await storage.get_version_tags(sv.id)
     })
 
 @router.get("/{namespace}/{slug}/versions/{version}/instructions")
@@ -176,16 +177,18 @@ async def get_skill_instructions(
     version: str
 ):
     storage = getattr(request.app.state, "storage", None)
+    if not storage:
+        raise HTTPException(status_code=500, detail="Storage not initialized")
     sv = await storage.get_skill_version(namespace, slug, version)
     if not sv:
         raise HTTPException(status_code=404, detail="Version not found")
     
     etag = f'"{sv.content_hash}"'
     if request.headers.get("if-none-match") == etag:
-        return Response(status_code=304)
+        return Response(status_code=304, headers={"ETag": etag})
         
     return Response(
-        content=sv.instructions,
+        content=sv.instructions or "",
         media_type="text/markdown; charset=utf-8",
         headers={"ETag": etag}
     )
@@ -198,10 +201,12 @@ async def get_skill_file(
     version: str,
     path: str = Query(...)
 ):
-    if ".." in path or path.startswith("/"):
+    if ".." in path or path.startswith("/") or "\\" in path:
         raise HTTPException(status_code=400, detail="Invalid path")
         
     storage = getattr(request.app.state, "storage", None)
+    if not storage:
+        raise HTTPException(status_code=500, detail="Storage not initialized")
     sv = await storage.get_skill_version(namespace, slug, version)
     if not sv:
         raise HTTPException(status_code=404, detail="Version not found")

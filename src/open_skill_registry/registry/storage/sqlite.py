@@ -177,6 +177,13 @@ class SQLiteStorage(BaseStorage):
             )
             return result.scalar_one_or_none()
 
+    async def get_version_tags(self, version_id) -> list[str]:
+        from open_skill_registry.server.db.models import ReleaseTag
+        from sqlalchemy import select
+        async with self.session_maker() as session:
+            result = await session.execute(select(ReleaseTag.tag_name).where(ReleaseTag.version_id == version_id))
+            return list(result.scalars().all())
+
     async def get_skill_resources(self, version_id: uuid.UUID) -> Dict[str, bytes]:
         async with self.session_maker() as session:
             result = await session.execute(
@@ -192,11 +199,12 @@ class SQLiteStorage(BaseStorage):
         namespace: Optional[str] = None
     ) -> List[SkillSummary]:
         async with self.session_maker() as session:
-            stmt = select(Skill, Namespace.slug.label("ns_slug")).join(Namespace)
+            stmt = select(Skill, Namespace.slug.label("ns_slug"), SkillVersion).join(Namespace)
+            stmt = stmt.outerjoin(SkillVersion, Skill.latest_version_id == SkillVersion.id)
             if namespace:
                 stmt = stmt.where(Namespace.slug == namespace)
             
-            if not query_vector:
+            if query and not query_vector:
                 stmt = stmt.where(
                     or_(
                         Skill.name.ilike(f"%{query}%"),
@@ -208,46 +216,44 @@ class SQLiteStorage(BaseStorage):
             rows = result.all()
             
             skills = []
-            for skill, ns_slug in rows:
-                skills.append((skill, ns_slug))
+            for skill, ns_slug, sv in rows:
+                skills.append((skill, ns_slug, sv))
 
             if query_vector:
                 rescored = []
-                for skill, ns_slug in skills:
+                for skill, ns_slug, sv in skills:
                     score = 0.0
                     
-                    # Keyword match boost
-                    if query.lower() in skill.name.lower():
-                        score += 0.5
-                    elif skill.description and query.lower() in skill.description.lower():
-                        score += 0.2
+                    if query:
+                        if query.lower() in skill.name.lower():
+                            score += 0.5
+                        elif skill.description and query.lower() in skill.description.lower():
+                            score += 0.2
 
-                    if skill.latest_version_id:
+                    if sv:
                         emb_res = await session.execute(
-                            select(SkillEmbedding).where(SkillEmbedding.version_id == skill.latest_version_id)
+                            select(SkillEmbedding).where(SkillEmbedding.version_id == sv.id)
                         )
                         emb = emb_res.scalar_one_or_none()
                         if emb and emb.embedding:
                             vec_score = cosine_similarity(query_vector, emb.embedding)
                             score += vec_score
                     
-                    if score > 0:
-                        rescored.append((score, skill, ns_slug))
+                    if score > 0 or not query:
+                        rescored.append((score, skill, ns_slug, sv))
                 rescored.sort(key=lambda x: x[0], reverse=True)
-                skills = [(item[1], item[2]) for item in rescored[:limit]]
+                skills = [(item[1], item[2], item[3]) for item in rescored[:limit]]
             else:
                 skills = skills[:limit]
-
+            
             summaries = []
-            for skill, ns_slug in skills:
-                latest_version = ""
-                if skill.latest_version_id:
-                    latest_res = await session.execute(
-                        select(SkillVersion.version).where(SkillVersion.id == skill.latest_version_id)
-                    )
-                    ver = latest_res.scalar_one_or_none()
-                    if ver:
-                        latest_version = ver
+            for skill, ns_slug, sv in skills:
+                latest_version = sv.version if sv else ""
+                content_hash = sv.content_hash if sv else ""
+                
+                tags = []
+                if sv:
+                    tags = await self.get_version_tags(sv.id)
 
                 summaries.append(SkillSummary(
                     name=skill.name,
@@ -256,8 +262,11 @@ class SQLiteStorage(BaseStorage):
                     description=skill.description or "",
                     latest_version=latest_version,
                     download_count=skill.download_count,
-                    visibility=skill.visibility
+                    visibility=skill.visibility,
+                    tags=tags,
+                    content_hash=content_hash
                 ))
+
             return summaries
 
     async def resolve_version(self, namespace: str, slug: str, constraint: str) -> Optional[SkillVersion]:
@@ -324,7 +333,8 @@ class SQLiteStorage(BaseStorage):
     async def list_skills(self, namespace: Optional[str] = None, page: int = 1, size: int = 20, sort: str = "updated") -> Any:
         from open_skill_registry.models.response import Page
         async with self.session_maker() as session:
-            stmt = select(Skill, Namespace.slug.label("ns_slug")).join(Namespace)
+            stmt = select(Skill, Namespace.slug.label("ns_slug"), SkillVersion).join(Namespace)
+            stmt = stmt.outerjoin(SkillVersion, Skill.latest_version_id == SkillVersion.id)
             if namespace:
                 stmt = stmt.where(Namespace.slug == namespace)
             
@@ -342,16 +352,13 @@ class SQLiteStorage(BaseStorage):
             result = await session.execute(stmt)
             
             summaries = []
-            for skill, ns_slug in result.all():
-                latest_version = ""
-                if skill.latest_version_id:
-                    latest_res = await session.execute(
-                        select(SkillVersion.version).where(SkillVersion.id == skill.latest_version_id)
-                    )
-                    ver = latest_res.scalar_one_or_none()
-                    if ver:
-                        latest_version = ver
-
+            for skill, ns_slug, sv in result.all():
+                latest_version = sv.version if sv else ""
+                content_hash = sv.content_hash if sv else ""
+                
+                # Fetch tags if needed (optional for list_skills, but let's just do empty or fetch them)
+                # To avoid N+1 for tags in list_skills, we will just leave it empty.
+                
                 summaries.append(SkillSummary(
                     name=skill.name,
                     slug=skill.slug,
@@ -359,7 +366,9 @@ class SQLiteStorage(BaseStorage):
                     description=skill.description or "",
                     latest_version=latest_version,
                     download_count=skill.download_count,
-                    visibility=skill.visibility
+                    visibility=skill.visibility,
+                    tags=[],
+                    content_hash=content_hash
                 ))
             
             return Page(items=summaries, total=total, page=page, page_size=size)

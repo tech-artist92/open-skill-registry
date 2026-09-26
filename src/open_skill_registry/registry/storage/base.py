@@ -4,7 +4,9 @@ import uuid
 
 from open_skill_registry.models.skill import SkillDetail, SkillSummary
 from open_skill_registry.models.manifest import SkillManifest
-from open_skill_registry.server.db.models import SkillVersion
+from open_skill_registry.models.response import Page
+from open_skill_registry.server.db.models import SkillVersion, SkillResource
+
 
 
 class BaseStorage(ABC):
@@ -34,6 +36,10 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
+    async def get_version_tags(self, version_id: uuid.UUID) -> List[str]:
+        pass
+
+    @abstractmethod
     async def get_skill_resources(self, version_id: uuid.UUID) -> Dict[str, bytes]:
         pass
 
@@ -60,9 +66,10 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def list_skills(self, namespace: Optional[str] = None, page: int = 1, size: int = 20, sort: str = "updated") -> Any:
+    async def list_skills(self, namespace: Optional[str] = None, page: int = 1, size: int = 20, sort: str = "updated") -> 'Page[SkillSummary]':
         pass
 
     @abstractmethod
-    async def get_skill_resource_file(self, version_id: uuid.UUID, path: str) -> Optional[Any]:
+    async def get_skill_resource_file(self, version_id: uuid.UUID, path: str) -> Optional['SkillResource']:
         pass
+

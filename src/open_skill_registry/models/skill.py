@@ -31,6 +31,9 @@ class SkillSummary(BaseModel):
     latest_version: str
     download_count: int = 0
     visibility: str = "PUBLIC"
+    tags: list[str] = Field(default_factory=list)
+    content_hash: str = ""
+
 
 
 class SkillDetail(SkillSummary):

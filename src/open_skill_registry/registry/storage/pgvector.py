@@ -170,6 +170,13 @@ class PgVectorStorage(BaseStorage):
             )
             return result.scalar_one_or_none()
 
+    async def get_version_tags(self, version_id) -> list[str]:
+        from open_skill_registry.server.db.models import ReleaseTag
+        from sqlalchemy import select
+        async with self.session_maker() as session:
+            result = await session.execute(select(ReleaseTag.tag_name).where(ReleaseTag.version_id == version_id))
+            return list(result.scalars().all())
+
     async def get_skill_resources(self, version_id: uuid.UUID) -> Dict[str, bytes]:
         async with self.session_maker() as session:
             result = await session.execute(
@@ -192,13 +199,11 @@ class PgVectorStorage(BaseStorage):
             tsquery = func.plainto_tsquery('english', query)
             rank = func.ts_rank_cd(Skill.tsv, tsquery)
             
-            stmt = select(Skill, Namespace.slug.label("ns_slug"), rank.label("text_score"))
+            stmt = select(Skill, Namespace.slug.label("ns_slug"), rank.label("text_score"), SkillVersion)
             stmt = stmt.join(Namespace)
+            stmt = stmt.outerjoin(SkillVersion, Skill.latest_version_id == SkillVersion.id)
             
             if query_vector:
-                # pgvector cosine distance is `<=>`
-                # cosine similarity = 1 - distance
-                stmt = stmt.outerjoin(SkillVersion, Skill.latest_version_id == SkillVersion.id)
                 stmt = stmt.outerjoin(SkillEmbedding, SkillVersion.id == SkillEmbedding.version_id)
                 distance = SkillEmbedding.embedding.cosine_distance(query_vector)
                 stmt = stmt.add_columns(distance.label("vec_distance"))
@@ -206,8 +211,8 @@ class PgVectorStorage(BaseStorage):
             if namespace:
                 stmt = stmt.where(Namespace.slug == namespace)
             
-            # If no query vector, we at least filter by text matching
-            if not query_vector:
+            # If not pure vector search (i.e. query is provided), filter by text
+            if query and not query_vector:
                 stmt = stmt.where(
                     or_(
                         Skill.name.ilike(f"%{query}%"),
@@ -319,7 +324,8 @@ class PgVectorStorage(BaseStorage):
     async def list_skills(self, namespace: Optional[str] = None, page: int = 1, size: int = 20, sort: str = "updated") -> Any:
         from open_skill_registry.models.response import Page
         async with self.session_maker() as session:
-            stmt = select(Skill, Namespace.slug.label("ns_slug")).join(Namespace)
+            stmt = select(Skill, Namespace.slug.label("ns_slug"), SkillVersion).join(Namespace)
+            stmt = stmt.outerjoin(SkillVersion, Skill.latest_version_id == SkillVersion.id)
             if namespace:
                 stmt = stmt.where(Namespace.slug == namespace)
             
@@ -337,16 +343,13 @@ class PgVectorStorage(BaseStorage):
             result = await session.execute(stmt)
             
             summaries = []
-            for skill, ns_slug in result.all():
-                latest_version = ""
-                if skill.latest_version_id:
-                    latest_res = await session.execute(
-                        select(SkillVersion.version).where(SkillVersion.id == skill.latest_version_id)
-                    )
-                    ver = latest_res.scalar_one_or_none()
-                    if ver:
-                        latest_version = ver
-
+            for skill, ns_slug, sv in result.all():
+                latest_version = sv.version if sv else ""
+                content_hash = sv.content_hash if sv else ""
+                
+                # Fetch tags if needed (optional for list_skills, but let's just do empty or fetch them)
+                # To avoid N+1 for tags in list_skills, we will just leave it empty.
+                
                 summaries.append(SkillSummary(
                     name=skill.name,
                     slug=skill.slug,
@@ -354,7 +357,9 @@ class PgVectorStorage(BaseStorage):
                     description=skill.description or "",
                     latest_version=latest_version,
                     download_count=skill.download_count,
-                    visibility=skill.visibility
+                    visibility=skill.visibility,
+                    tags=[],
+                    content_hash=content_hash
                 ))
             
             return Page(items=summaries, total=total, page=page, page_size=size)
