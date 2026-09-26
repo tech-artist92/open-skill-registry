@@ -19,6 +19,9 @@ Direct database storage (SQLite for zero-ops local, PostgreSQL for hosted) elimi
 ### Principle VI: Universal Interoperability & Trust
 The registry acts as a universal bridge for all agent ecosystems, with native Model Context Protocol (MCP) support (SEP-2640) for runtime interoperability, and direct IDE workspace integration (`.cursor/skills/`, `.claude/skills/`). Security is non-negotiable: all published skills undergo static security scanning for prompt-injection and malicious scripts. Direct Git imports enable seamless sourcing from external repositories.
 
+### Principle VII: LLM-Optimized Vibe Coding (Functional & Declarative)
+To maximize development velocity and reliability when coding with LLMs ("vibe coding"), the codebase strictly adheres to a functional and declarative paradigm. Complex state mutations, deeply nested class hierarchies, and hidden side effects are explicitly rejected in favor of the "Functional Core, Imperative Shell" pattern. Core logic (hashing, validation, search, parsing) is built as pure, easily-testable functions operating on immutable declarative data structures (Pydantic). LLM agents must write comprehensive tests *before* implementation, using pure functions to ensure predictable, deterministic behavior.
+
 ## Licensing & Governance
 
 - **License**: Apache License, Version 2.0 (permissive open-source for community and enterprise use).

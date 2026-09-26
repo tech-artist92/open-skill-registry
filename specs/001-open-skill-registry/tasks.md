@@ -7,6 +7,14 @@
 
 ---
 
+## Execution Directives: LLM-Optimized Vibe Coding & Testing
+All tasks must be implemented adhering to the **Functional & Declarative** paradigm to maximize predictability and LLM iteration speed:
+1. **Test-Driven (TDD) Mandatory**: Every implementation task implies an implicit testing prerequisite. You MUST write unit tests *before* writing the implementation.
+2. **Pure Functions**: Write business logic as pure, side-effect-free functions operating on immutable Pydantic models. Avoid stateful classes.
+3. **Declarative Composition**: Keep the imperative shell (DB, HTTP, CLI) as thin as possible, immediately offloading to the functional core.
+
+---
+
 ## Phase 1: Setup (Shared Infrastructure & Environment)
 
 **Purpose**: Project initialization, package scaffolding, and build tooling
