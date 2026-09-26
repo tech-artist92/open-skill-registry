@@ -129,11 +129,29 @@ async def test_tag_mutation_404(app):
         response = await client.get("/api/v1/skills/ns/slug/resolve?version=9.9.9")
         assert response.status_code == 404
 
-def test_cli_tag():
-    # Because CLI requires a real server or mock, and we don't spin up uvicorn here,
-    # we might need to mock httpx or the app client inside the CLI command.
-    # The instructions say: "Using typer.testing.CliRunner: Test osr tag CLI command".
-    # We can mock the client in the test if needed.
-    pass
+from unittest.mock import patch, MagicMock
 
-# We can write a monkeypatched test for the CLI or use `responses`/`respx`.
+def test_cli_tag():
+    with patch("open_skill_registry.cli.commands.tag.Client") as MockClient:
+        mock_client = MockClient.return_value.__enter__.return_value
+        
+        # Success case
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_client.put.return_value = mock_response
+        
+        result = runner.invoke(cli_app, ["tag", "public/my-skill", "1.0.0", "staging"])
+        assert result.exit_code == 0
+        assert "Successfully assigned tag 'staging' to public/my-skill @ 1.0.0" in result.stdout
+        mock_client.put.assert_called_with("http://localhost:8080/api/v1/skills/public/my-skill/tags/staging", json={"version": "1.0.0"})
+
+        # Error case
+        mock_error_response = MagicMock()
+        mock_error_response.status_code = 404
+        mock_error_response.json.return_value = {"detail": "Version not found"}
+        mock_client.put.return_value = mock_error_response
+        
+        result = runner.invoke(cli_app, ["tag", "public/my-skill", "1.0.0", "staging"])
+        assert result.exit_code != 0
+        assert "Error 404" in result.stdout
+        assert "Version not found" in result.stdout

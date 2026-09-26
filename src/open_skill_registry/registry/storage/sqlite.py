@@ -293,8 +293,9 @@ class SQLiteStorage(BaseStorage):
                 .join(Skill, SkillVersion.skill_id == Skill.id)
                 .join(Namespace)
                 .where(Namespace.slug == namespace, Skill.slug == slug, SkillVersion.content_hash == content_hash)
+                .order_by(SkillVersion.created_at.desc())
             )
-            return result.scalar_one_or_none()
+            return result.scalars().first()
 
     async def tag_version(self, namespace: str, slug: str, version: str, tag: str) -> None:
         async with self.session_maker() as session:

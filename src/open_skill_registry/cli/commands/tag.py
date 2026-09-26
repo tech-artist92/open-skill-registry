@@ -2,7 +2,6 @@ import typer
 from rich.console import Console
 from httpx import Client, HTTPError
 import sys
-from typing import Optional
 
 console = Console()
 app = typer.Typer(help="Manage release tags for skills.")

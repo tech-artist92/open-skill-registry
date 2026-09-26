@@ -1,6 +1,7 @@
 import io
 import zipfile
 from typing import Optional, Dict, List
+from pydantic import BaseModel, Field
 from fastapi import Query, Response
 from fastapi.responses import PlainTextResponse
 from open_skill_registry.server.services.search_service import SearchService
@@ -219,11 +220,8 @@ async def get_skill_file(
         content=resource.content,
         media_type=resource.content_type
     )
-
-from pydantic import BaseModel
-
 class TagVersionRequest(BaseModel):
-    version: str
+    version: str = Field(..., min_length=1)
 
 @router.put("/{namespace}/{slug}/tags/{tag}")
 async def assign_tag(
