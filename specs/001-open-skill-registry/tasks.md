@@ -49,8 +49,8 @@ All tasks must be implemented adhering to the **Functional & Declarative** parad
   - `ApiKey`: `id` UUID PK, `key_hash` varchar, `key_prefix` varchar(8), `label` varchar, `namespace_id` FK nullable, `permissions` varchar ("READ", "WRITE", "ADMIN"), `is_active` bool
 - [x] T013 Create initial Alembic migration in `src/open_skill_registry/server/db/migrations/versions/001_initial_schema.py` creating `vector` extension, all 7 tables, GIN indexes on `tsv` and `tags`, HNSW index on `embedding`, and pre-seeding `public` namespace
 - [x] T014 Implement async database session engine and lifecycle in `src/open_skill_registry/server/db/session.py`
-- [ ] T015 [P] Implement Redis caching and ETag revalidation helper in `src/open_skill_registry/server/services/cache_service.py` with graceful fallback when Redis is unavailable
-- [ ] T016 [P] Implement default local ONNX embedding provider using FastEmbed (`BAAI/bge-small-en-v1.5`, 384-dim, 0 API keys) and pluggable adapters in `src/open_skill_registry/registry/embeddings/` (`base.py`, `fastembed.py`, `gemini.py`, `openai.py`, `ollama.py`, `huggingface.py`, `none.py`)
+- [x] T015 [P] Implement Redis caching and ETag revalidation helper in `src/open_skill_registry/server/services/cache_service.py` with graceful fallback when Redis is unavailable
+- [x] T016 [P] Implement default local ONNX embedding provider using FastEmbed (`BAAI/bge-small-en-v1.5`, 384-dim, 0 API keys) and pluggable adapters in `src/open_skill_registry/registry/embeddings/` (`base.py`, `fastembed.py`, `gemini.py`, `openai.py`, `ollama.py`, `huggingface.py`, `none.py`)
 - [ ] T017 Implement basic FastAPI app factory, error handlers, and health route in `src/open_skill_registry/server/app.py` and `src/open_skill_registry/server/routes/health.py` (`GET /health`)
 - [ ] T018 [P] Implement CLI foundation, configuration loader (`osr.config.yaml` / `~/.osr/config.yaml`), and setup commands in `src/open_skill_registry/cli/` (`main.py`, `config.py`, `commands/init.py`, `commands/serve.py`) supporting 1-second `osr init` scaffolding
 
