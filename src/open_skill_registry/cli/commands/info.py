@@ -4,7 +4,6 @@ import json
 from open_skill_registry.client.main import SkillRegistryClient
 from open_skill_registry.client.exceptions import NotFoundError
 
-app = typer.Typer()
 console = Console()
 
 def parse_skill_name(skill: str) -> tuple[str, str]:
