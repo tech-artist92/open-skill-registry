@@ -132,6 +132,12 @@ Retrieves full version details, parsed frontmatter, and file manifest (L1).
     "author": "google",
     "compliance_tags": ["pii-safe", "no-external-calls"]
   },
+  "safety_score": "SAFE",
+  "security_scan": {
+    "status": "passed",
+    "scanned_at": "2026-09-26T10:05:00Z",
+    "findings": []
+  },
   "created_at": "2026-09-26T10:00:00Z"
 }
 ```
@@ -229,6 +235,29 @@ Assigns a mutable release tag to a version.
 
 ### `DELETE /api/v1/skills/{namespace}/{slug}/versions/{version}`
 Yanks a published version (soft-deletion).
+
+---
+
+### `POST /api/v1/skills/import`
+Imports a skill from an external git repository.
+
+**Request Body**:
+```json
+{
+  "git_url": "https://github.com/myorg/my-skill-repo.git",
+  "namespace": "myorg"
+}
+```
+
+---
+
+## 5.1. Model Context Protocol (MCP) Endpoints
+
+### `GET /api/v1/mcp/sse`
+Initializes a Server-Sent Events (SSE) connection for the MCP networked transport.
+
+### `POST /api/v1/mcp/messages`
+Accepts MCP JSON-RPC messages from the client over HTTP, routed to the active SSE connection.
 
 ---
 

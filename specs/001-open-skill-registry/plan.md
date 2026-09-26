@@ -12,7 +12,7 @@ Open Skill Registry is an open-source skill registry ecosystem for discovering, 
 1. **Embedded Library Mode (`SkillRegistry` / `AsyncSkillRegistry`)**: In-process Python engine that connects directly to the developer's infrastructure (PostgreSQL/pgvector, local SQLite, pluggable embeddings) without requiring an HTTP server, with zero network overhead.
 2. **Hosted Server & Client Mode (`open_skill_registry.server` + `SkillRegistryClient`)**: Self-hostable FastAPI server with Web UI, REST API, Redis caching, multi-tier visibility (`PUBLIC`, `NAMESPACE_ONLY`, `PRIVATE`), and a drop-in HTTP client sharing identical operational semantics.
 
-Both modes share the identical core engine (`SkillService`, `SearchService`, `EmbeddingService`), content-addressed storage (SHA-256 manifests), and 100% Google ADK 2.9.2+ `SkillToolset` compatibility.
+Both modes share the identical core engine (`SkillService`, `SearchService`, `EmbeddingService`), content-addressed storage (SHA-256 manifests), and 100% Google ADK 2.9.2+ `SkillToolset` compatibility. The ecosystem also features a native MCP Server (SEP-2640), a Security Scanner, and a Universal Installer.
 
 ---
 
@@ -21,7 +21,7 @@ Both modes share the identical core engine (`SkillService`, `SearchService`, `Em
 **Language/Version**: Python 3.11+ (leveraging modern typing, AsyncIO, and Pydantic v2).
 
 **Primary Dependencies**:
-- Web & API: `fastapi>=0.115.0`, `uvicorn>=0.30.0`, `pydantic>=2.8.0`, `python-multipart>=0.0.9`.
+- Web & API: `fastapi>=0.115.0`, `uvicorn>=0.30.0`, `pydantic>=2.8.0`, `python-multipart>=0.0.9`, `mcp>=1.0.0` (for MCP server).
 - Database & ORM: `sqlalchemy[asyncio]>=2.0.30`, `sqlmodel>=0.0.21`, `asyncpg>=0.29.0`, `pgvector>=0.3.0`, `alembic>=1.13.0`.
 - Configuration: `pyyaml>=6.0.1`.
 - Cache: `redis[hiredis]>=5.0.0` (optional in embedded mode).
@@ -30,7 +30,7 @@ Both modes share the identical core engine (`SkillService`, `SearchService`, `Em
 
 **Storage**: PostgreSQL 16 with `pgvector` extension (single transactional store for metadata, manifests, vector embeddings, and file contents) + Redis 7 for high-speed caching in hosted mode; or SQLite 3 / PostgreSQL in embedded mode.
 
-**Testing**: `pytest`, `pytest-asyncio`, `testcontainers[postgres,redis]`, `respx` (for HTTP mocking), and `httpx.AsyncClient`.
+**Testing**: `pytest`, `pytest-asyncio`, `testcontainers[postgres,redis]`, `respx` (for HTTP mocking), `httpx.AsyncClient`, MCP protocol tests, and security AST/Regex tests.
 
 **Target Platform**: Multi-platform (macOS, Linux, Docker containerized environment, Kubernetes, embedded in Python processes).
 

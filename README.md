@@ -8,9 +8,17 @@ Open Skill Registry is an open-source, high-performance skill registry ecosystem
 
 ---
 
-## 🌟 Dual Delivery Architecture
+## 🌟 Features & Architecture
 
-Open Skill Registry supports two distinct execution modes out of the box (inspired by modern AI frameworks like Mem0):
+Open Skill Registry is built around a robust, flexible architecture designed for both local AI development and enterprise deployments.
+
+Key Capabilities:
+- **Native MCP Server (SEP-2640)**: Expose skills instantly to Claude Desktop, Cursor, and any MCP-compatible client via `osr mcp`.
+- **Universal Workspace Installer**: Inject skills directly into IDEs and agent workspaces (`osr install google/weather --target cursor`).
+- **Automated Security Scanning**: Built-in AST and dependency analysis to block malicious skills before they run.
+- **Git Imports**: Directly pull and sync skills from GitHub/GitLab (`osr import github:org/repo`).
+
+It supports two distinct execution modes out of the box (inspired by modern AI frameworks like Mem0):
 
 1. **Embedded Library Mode (`SkillRegistry`)**:
    - In-process Python engine connecting directly to your database (PostgreSQL + pgvector or local SQLite).
@@ -142,6 +150,8 @@ curl http://localhost:8080/health
   - [REST API Contract](specs/001-open-skill-registry/contracts/api-contract.md)
   - [CLI Contract](specs/001-open-skill-registry/contracts/cli-contract.md)
   - [Google ADK Integration Contract](specs/001-open-skill-registry/contracts/adk-contract.md)
+  - [MCP Contract (SEP-2640)](specs/001-open-skill-registry/contracts/mcp-contract.md)
+  - [Framework Adapters](specs/001-open-skill-registry/contracts/framework-adapters.md)
 
 ---
 

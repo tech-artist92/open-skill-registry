@@ -268,3 +268,76 @@ pytest tests/integration/
 # Run ADK adapter mock tests (both embedded and hosted modes)
 pytest tests/adk/
 ```
+
+---
+
+## 9. Model Context Protocol (MCP) Quickstart
+
+The Open Skill Registry can act as a native MCP Server, exposing your installed skills instantly to tools like Claude Desktop or Cursor.
+
+### Option A: Cursor Configuration
+Run the MCP server in your workspace:
+```bash
+osr mcp
+```
+Then in Cursor, add an MCP server:
+- **Type**: `command`
+- **Command**: `osr mcp`
+
+### Option B: Claude Desktop Configuration
+Add the following to your `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "open-skill-registry": {
+      "command": "osr",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+---
+
+## 10. Universal Workspace Installer
+
+Inject skills directly into your preferred IDE or agent workspace:
+
+```bash
+# Install to Cursor
+osr install public/weather-lookup --target cursor
+
+# Install to generic local environment
+osr install public/weather-lookup --target local
+```
+
+---
+
+## 11. Security Scanning
+
+Before running or publishing skills, validate them with the built-in AST and dependency analyzer to block malicious content.
+
+```bash
+# Scan a local skill directory
+osr scan ./samples/weather-skill
+
+# Output:
+# [PASS] No critical vulnerabilities found.
+# [INFO] Found 1 minor issue: Missing explicit return type.
+```
+
+If `block_critical` is true in `osr.config.yaml`, the CLI will prevent pushing skills that fail the security scan.
+
+---
+
+## 12. Git Imports
+
+Directly pull and sync skills from external Git repositories without manually cloning them:
+
+```bash
+# Import a skill directly from a GitHub repository
+osr import github:org/repo
+
+# Import from a specific branch or tag
+osr import github:org/repo@v1.0.0
+```

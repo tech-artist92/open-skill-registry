@@ -51,6 +51,8 @@ erDiagram
         jsonb parsed_frontmatter "Full YAML frontmatter dictionary"
         jsonb manifest "Content-addressed file tree"
         jsonb compliance_snapshot "Immutable licensing and compliance digest"
+        jsonb security_scan "Static analysis result"
+        varchar safety_score "SAFE, WARN, CRITICAL"
         boolean is_yanked "Individual version yanked flag"
         varchar created_by "Client ID / API Key label"
         timestamptz created_at
@@ -125,6 +127,8 @@ An immutable release snapshot of a skill.
   - Unique composite index on `(skill_id, version)`.
   - Version format: Semantic Versioning 2.0 (`MAJOR.MINOR.PATCH[-PRERELEASE]`).
   - `content_hash`: Exactly 64 hexadecimal characters representing the SHA-256 digest of the canonical sorted manifest JSON.
+  - `safety_score`: Must be one of 'SAFE', 'WARN', 'CRITICAL'.
+  - `security_scan`: JSON object detailing static analysis findings (e.g., prompt-injection heuristics, unsafe shell scripts).
   - **Immutability Guarantee**: Once inserted, `content_hash`, `instructions`, `manifest`, and `parsed_frontmatter` are never modified. Only `is_yanked` may be updated.
 
 ### 4. `SkillResource`
@@ -171,11 +175,12 @@ stateDiagram-v2
 - **Publishing Transition**:
   1. Receive incoming files / standalone `SKILL.md` / directory.
   2. Parse frontmatter, validate constraints (allowed extensions, max sizes, no traversal).
-  3. Determine version (explicit → frontmatter → auto-increment patch).
-  4. Compute per-file SHA-256 hashes and build canonical manifest.
-  5. Store files in `skill_resources`, create `skill_versions` record.
-  6. Trigger background or inline vector embedding generation (using default local FastEmbed model or configured provider).
-  7. Update `latest` tag on parent `skills` record.
+  3. Run static security scanner for prompt-injection and dangerous shell scripts, generating safety score.
+  4. Determine version (explicit → frontmatter → auto-increment patch).
+  5. Compute per-file SHA-256 hashes and build canonical manifest.
+  6. Store files in `skill_resources`, create `skill_versions` record.
+  7. Trigger background or inline vector embedding generation (using default local FastEmbed model or configured provider).
+  8. Update `latest` tag on parent `skills` record.
 
 ---
 

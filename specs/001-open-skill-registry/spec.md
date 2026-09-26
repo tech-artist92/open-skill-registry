@@ -174,6 +174,76 @@ A developer building an AI agent or backend service imports `open_skill_registry
 
 ---
 
+### User Story 10 - Agent Executes Skills via Model Context Protocol (MCP) (Priority: P1)
+
+An agent uses the registry as an MCP Server (SEP-2640) to dynamically discover and execute skills via standard `osr mcp` stdio or a hosted `/mcp/sse` endpoint.
+
+**Why this priority**: Universal interoperability beyond Google ADK.
+
+**Independent Test**: Start the CLI MCP server and use the Claude desktop app to load and execute a skill.
+
+**Acceptance Scenarios**:
+
+1. **Given** a client configured for MCP, **When** it queries `osr mcp` for tools, **Then** it receives the available skills.
+
+---
+
+### User Story 11 - Developer Installs Skills Directly into IDE Workspaces (Priority: P1)
+
+A developer uses `osr install` to automatically download and sync a skill directly into their IDE workspace (`.cursor/skills/`, `.claude/skills/`).
+
+**Why this priority**: Meets developers where they work by integrating directly with modern AI IDEs.
+
+**Independent Test**: Run `osr install google/bigquery` inside a Cursor project and verify files are created.
+
+**Acceptance Scenarios**:
+
+1. **Given** a valid skill, **When** the developer runs `osr install <skill>`, **Then** files are correctly written to the `.cursor/skills` folder.
+
+---
+
+### User Story 12 - Publisher Imports Skills Directly from Git (Priority: P2)
+
+A publisher imports a remote Git repository of skills using `osr import github:owner/repo`.
+
+**Why this priority**: Streamlines bulk onboarding of existing open-source tool collections.
+
+**Independent Test**: Run import on a public GitHub repo and verify skills are published.
+
+**Acceptance Scenarios**:
+
+1. **Given** a public repo with valid `SKILL.md` files, **When** `osr import github:owner/repo` is executed, **Then** all skills are extracted and published to the registry.
+
+---
+
+### User Story 13 - Security Scanner Blocks Malicious Skills (Priority: P1)
+
+A security scanner automatically audits an uploaded skill for prompt injection and malicious shell scripts, tagging it with a CRITICAL safety score and blocking execution.
+
+**Why this priority**: Trust is paramount in an open ecosystem.
+
+**Independent Test**: Upload a skill with a known prompt injection string and verify rejection.
+
+**Acceptance Scenarios**:
+
+1. **Given** a skill with malicious content, **When** it is pushed, **Then** the registry scans, detects the threat, and rejects the publish with a 422 error and a safety report.
+
+---
+
+### User Story 14 - Developer Uses Standard LangChain/OpenAI Bridges (Priority: P2)
+
+A developer uses LangChain or OpenAI function calling bridges (e.g., `as_langchain_tools()`) to load and execute skills.
+
+**Why this priority**: Broadens the framework ecosystem compatibility.
+
+**Independent Test**: Load a skill and convert it to a LangChain tool, then invoke it.
+
+**Acceptance Scenarios**:
+
+1. **Given** a loaded skill, **When** the developer calls `as_langchain_tools()`, **Then** a compatible tool object is returned.
+
+---
+
 ### Edge Cases
 
 - What happens when the embedding provider is unavailable during a search? The system falls back to PostgreSQL full-text search and logs a warning.
@@ -222,6 +292,14 @@ A developer building an AI agent or backend service imports `open_skill_registry
 - **FR-032**: System MUST provide a single unified configuration file (`osr.config.yaml` / `.osr/config.yaml`) and corresponding Python schema (`RegistryConfig`) supporting pluggable vector storage and database backends, embedders, and optional cache layers for both embedded and hosted modes.
 - **FR-033**: System MUST provide a hosted client interface (`SkillRegistryClient` / `AsyncSkillRegistryClient`) sharing a consistent operational API with the embedded engine, enabling developers to switch between embedded direct-to-infra and hosted server deployments with minimal code changes.
 - **FR-034**: System MUST provide minimal CLI setup commands (`osr init`) to generate a ready-to-use configuration file with sensible defaults for instant zero-configuration startup.
+- **FR-035**: System MUST implement a native Model Context Protocol (MCP) server supporting stdio and SSE transport for universal agent discovery and execution.
+- **FR-036**: System MUST provide a Universal Install CLI (`osr install`) to inject skills into IDE environments like Cursor and Claude Code.
+- **FR-037**: System MUST provide an Update and List CLI (`osr update`, `osr list`) for managing local IDE installed skills.
+- **FR-038**: System MUST implement a Static Security Scanner during the publish workflow to detect prompt injection vectors.
+- **FR-039**: System MUST implement a Static Security Scanner during the publish workflow to detect malicious shell scripts.
+- **FR-040**: System MUST reject publish requests that fail security scanning with a CRITICAL safety score.
+- **FR-041**: System MUST support direct Git Import (`osr import github:owner/repo`) for bulk extraction and publishing of skills from remote repositories.
+- **FR-042**: System MUST provide Universal Adapters to convert loaded skills into LangChain tools or OpenAI function definitions (e.g., `as_langchain_tools()`).
 
 ### Key Entities
 

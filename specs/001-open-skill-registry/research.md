@@ -21,6 +21,10 @@
 | **Auth & Governance** | **Dual-Mode (Open by default, API Key + Namespace in secured mode)** | Open mode allows instant zero-config local prototyping; setting `AUTH_ENABLED=true` enforces API key authentication on writes, with namespace scoping and visibility levels (`PUBLIC`, `NAMESPACE_ONLY`, `PRIVATE`). | Full OAuth2/OIDC SSO in v1: too complex for initial release; No auth ever: unsuited for enterprise deployments. |
 | **Delivery Model** | **Dual Delivery (Embedded Library `SkillRegistry` + Hosted Server `SkillRegistryClient`)** | Inspired by Mem0: developers can either `from open_skill_registry import SkillRegistry` and connect directly to their own PostgreSQL/pgvector or vector store with zero network hops, or run the hosted FastAPI server and connect via `SkillRegistryClient`. Same high-level API across both. | Hosted-only: forces every user to run and maintain a network server even for simple agent apps; Library-only: cannot provide multi-tenant team governance, Web UI, or cross-language HTTP API. |
 | **Configuration & Setup** | **Single Unified Config File (`osr.config.yaml`) & 2-Step Setup** (`pip install open-skill-registry && osr init`) | Delivers an effortless user setup experience. A single well-commented YAML file configures embedded vs server mode, storage, database, cache, and search/embedding options. Command `osr init` generates this config in 1 second. | Multiple fragmented config files (.env, toml, json): confusing for users; Complex multi-step manual setup: slows down adoption. |
+| **Interoperability** | **Native SEP-2640 (Skills Over MCP)** | Exposing skills over the Model Context Protocol (MCP) instantly unlocks compatibility with Claude Desktop, Cursor, and any MCP-compliant agent, maximizing the reach of the registry without writing custom integrations for each tool. | Custom per-tool Adapters: massive maintenance burden; Raw API only: limits adoption as users have to write integrations. |
+| **Security** | **Static Analysis (AST/Regex) for Skill Scanning** | Deterministic, fast, and costs zero API credits. Analyzes shell scripts and prompt templates for known injection patterns, generating a strict safety score (`SAFE`, `WARN`, `CRITICAL`). | LLM-as-a-judge: slow, non-deterministic, high API cost, and vulnerable to meta-prompt-injection. |
+| **Distribution** | **Universal Workspace Installer (`osr install` auto-detecting IDEs)** | Removes friction for end-users. The CLI auto-detects Cursor, VSCode, or other environments in the current workspace and wires up the skills automatically. | Manual Zip/Folder copies: high developer friction; copy-paste errors. |
+| **Sourcing** | **Direct Git Import** | Allows developers to pull skills directly from public git repositories (e.g., `osr install github.com/user/repo`), bypassing the need for a manual publish step for highly distributed open-source skills. | Manual publish only: centralizes distribution and adds friction to simple open-source skill sharing. |
 
 ---
 
@@ -92,4 +96,20 @@
   3. Execution requires zero extra configuration:
      - Embedded: `from open_skill_registry import SkillRegistry; reg = SkillRegistry()`
      - Server: `osr serve` or `docker compose up -d`.
+
+### 6. Interoperability: Native SEP-2640 (Skills Over MCP)
+- **Model Context Protocol**: Exposing skills natively over MCP (SEP-2640) ensures instant compatibility with any compliant agent or IDE (e.g., Claude Desktop, Cursor).
+- **Reduces Maintenance**: Eliminates the need to maintain custom plugins or adapters for every new AI tool in the ecosystem.
+
+### 7. Security: Static Analysis vs LLM-as-a-judge
+- **Deterministic Validation**: Utilizing AST/Regex-based static analysis provides fast, deterministic evaluations of skills to assign a safety score (`SAFE`, `WARN`, `CRITICAL`).
+- **Cost and Robustness**: Bypasses the latency and API cost of LLM-as-a-judge, while also remaining invulnerable to meta-prompt-injection attacks.
+
+### 8. Distribution: Universal Workspace Installer
+- **Auto-Detection**: Command `osr install` automatically detects target workspace configurations (VSCode, Cursor) and wires up skills.
+- **Improved DX**: Dramatically simplifies distribution compared to manual zip/folder copying, eliminating typical developer friction and copy-paste errors.
+
+### 9. Sourcing: Direct Git Import
+- **Decentralized Sourcing**: Permits directly importing skills from remote git repositories without requiring publishers to register them centrally.
+- **Empowering Open-Source**: Removes the bottleneck of manual publish steps, facilitating frictionless sharing within the open-source community.
 

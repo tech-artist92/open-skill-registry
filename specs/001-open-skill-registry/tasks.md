@@ -216,6 +216,58 @@
 
 ---
 
+## Phase 12: Security & Trust
+
+**Purpose**: Enhance registry safety by statically analyzing skill content for vulnerabilities.
+
+- [ ] T060 [P] Implement tests for AST/Regex security scanner in `tests/unit/test_security_scanner.py`
+- [ ] T061 Implement `src/open_skill_registry/registry/security/scanner.py` (AST/Regex for shell injections, prompt overrides, secrets)
+- [ ] T062 Update publish endpoint to run scan and save `safety_score`
+- [ ] T063 Implement `osr scan` CLI command
+
+---
+
+## Phase 13: Universal Agent Installation
+
+**Purpose**: Seamlessly install skills into developer workspaces.
+
+- [ ] T064 [P] Implement tests for workspace auto-detection and installation commands in `tests/unit/test_installer.py`
+- [ ] T065 Implement `osr install` and `osr update` CLI commands with workspace auto-detection (`.cursor`, `.claude`, `.agents`)
+- [ ] T066 Implement `osr list --installed` CLI command
+
+---
+
+## Phase 14: Git Import Service
+
+**Purpose**: Direct import of skills from git repositories.
+
+- [ ] T067 [P] Implement tests for Git Import Service in `tests/unit/test_git_import.py`
+- [ ] T068 Implement `src/open_skill_registry/registry/git_import.py`
+- [ ] T069 Implement `osr import` CLI command
+
+---
+
+## Phase 15: Native MCP Server
+
+**Purpose**: Provide an MCP interface to the skill registry for agents.
+
+- [ ] T070 [P] Implement tests for native MCP server in `tests/contract/test_mcp_server.py`
+- [ ] T071 Implement `src/open_skill_registry/server/mcp/` supporting SEP-2640 `skills/list`, `skills/get`, `resources/read`
+- [ ] T072 Implement stdio MCP support via `osr mcp` CLI
+- [ ] T073 Implement SSE MCP support via `/mcp/sse` endpoints
+
+---
+
+## Phase 16: Universal Python Framework Bridges
+
+**Purpose**: Allow popular Python agent frameworks to directly consume registry skills.
+
+- [ ] T074 [P] Implement tests for framework bridges in `tests/unit/test_framework_bridges.py`
+- [ ] T075 Implement `src/open_skill_registry/adapters/langchain.py` and `openai.py`
+- [ ] T076 Implement `src/open_skill_registry/adapters/crewai.py`
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -232,6 +284,11 @@ flowchart TD
     P5 --> P9["Phase 9: US7 - Version Yanking (P3)"]
     P5 --> P10["Phase 10: US8 - Web UI (P2)"]
     P6 & P7 & P8 & P9 & P10 --> P11["Phase 11: Polish & Quickstart"]
+    P11 --> P12["Phase 12: Security & Trust"]
+    P11 --> P13["Phase 13: Universal Agent Installation"]
+    P11 --> P14["Phase 14: Git Import Service"]
+    P11 --> P15["Phase 15: Native MCP Server"]
+    P11 --> P16["Phase 16: Universal Python Framework Bridges"]
 ```
 
 ### Critical Path & MVP Strategy
@@ -250,13 +307,15 @@ flowchart TD
 - **User Story 2**: T025, T026 contract/unit tests run in parallel.
 - **User Story 1**: T030, T031 contract/ADK tests run in parallel.
 - **User Story 8 (Web UI)**: T053 (HTML) and T054 (CSS) can be authored in parallel.
+- **Phases 12-16**: Can be executed concurrently after Phase 11.
 
 ---
 
 ## Summary Metrics
 
-- **Total Tasks**: 59
+- **Total Tasks**: 76
 - **Setup & Foundational**: 18 tasks (T001–T018)
 - **User Stories**: 38 tasks (T019–T056 across 9 user stories)
 - **Polish & E2E Validation**: 3 tasks (T057–T059)
+- **Extended Features**: 17 tasks (T060–T076)
 - **Format Verification**: 100% of tasks follow the `- [ ] TXXX [P?] [US?] Description with file path` format.

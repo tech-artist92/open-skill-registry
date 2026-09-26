@@ -182,3 +182,58 @@ osr namespace create <SLUG> [--name <DISPLAY_NAME>] [--visibility <PUBLIC|NAMESP
 # Show namespace details
 osr namespace info <SLUG>
 ```
+
+---
+
+### `osr mcp`
+Starts a local MCP server over stdio for agents (e.g. Cursor, Claude).
+
+```bash
+osr mcp
+```
+
+---
+
+### `osr install`
+Installs a skill and optionally configures it for a specific target agent.
+
+```bash
+osr install <slug> [--target cursor|claude|adk]
+```
+
+---
+
+### `osr update`
+Updates installed skills to their latest versions.
+
+```bash
+osr update
+```
+
+---
+
+### `osr list`
+Lists skills, with an option to only show installed ones.
+
+```bash
+osr list [--installed]
+```
+
+---
+
+### `osr scan`
+Scans a path for potential skill misconfigurations or vulnerabilities.
+
+```bash
+osr scan <path>
+```
+
+---
+
+### `osr import`
+Imports a skill directly from a git URL.
+
+```bash
+osr import <git-url>
+```
+

@@ -16,6 +16,8 @@ Skill discovery is the central user experience. Semantic search is enabled by de
 
 ### Principle V: Simplicity, Transparency & YAGNI
 Direct database storage (SQLite for zero-ops local, PostgreSQL for hosted) eliminates external object store (S3/MinIO) complexity. A single unified configuration file (`osr.config.yaml`) and built-in lightweight Web UI eliminate separate configuration silos and frontend container build pipelines for v1. Unnecessary services or premature abstractions are rejected.
+### Principle VI: Universal Interoperability & Trust
+The registry acts as a universal bridge for all agent ecosystems, with native Model Context Protocol (MCP) support (SEP-2640) for runtime interoperability, and direct IDE workspace integration (`.cursor/skills/`, `.claude/skills/`). Security is non-negotiable: all published skills undergo static security scanning for prompt-injection and malicious scripts. Direct Git imports enable seamless sourcing from external repositories.
 
 ## Licensing & Governance
 
