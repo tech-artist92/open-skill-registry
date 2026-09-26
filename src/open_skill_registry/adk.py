@@ -80,6 +80,7 @@ class OpenSkillRegistry:
         cache_ttl: int = 60,
         timeout: float = 10.0,
         client: Optional[AsyncSkillRegistryClient] = None,
+        transport: Optional[Any] = None,
     ) -> None:
         if not endpoint and not registry and not client:
             raise ValueError("Must provide either endpoint, registry, or client")
@@ -101,7 +102,8 @@ class OpenSkillRegistry:
             self.registry = SkillRegistryClient(
                 base_url=endpoint,
                 api_key=api_key,
-                timeout=timeout
+                timeout=timeout,
+                transport=transport,
             )
             self.is_async = False
             
@@ -201,13 +203,22 @@ class OpenSkillRegistry:
             else:
                 ns, slug = norm_name.split("/", 1)
                 data = self._run(self.registry.get(ns, slug))
+
+            if data is None:
+                raise SkillNotFoundError(norm_name)
+
+            name_val = data.get("name", "") if isinstance(data, dict) else getattr(data, "name", "")
+            desc_val = data.get("description", "") if isinstance(data, dict) else getattr(data, "description", "")
+            inst_val = data.get("instructions", "") if isinstance(data, dict) else getattr(data, "instructions", "")
+            meta_val = data.get("metadata", {}) if isinstance(data, dict) else getattr(data, "metadata", {})
+
             return Skill(
-                name=data.get("name", ""),
-                description=data.get("description", ""),
-                instructions=data.get("instructions", ""),
-                metadata=data.get("metadata", {}),
+                name=name_val,
+                description=desc_val,
+                instructions=inst_val,
+                metadata=meta_val,
                 version=tag,
-                _registry=self
+                _registry=self,
             )
         except (ClientNotFoundError, BaseNotFoundError):
             raise SkillNotFoundError(norm_name)
