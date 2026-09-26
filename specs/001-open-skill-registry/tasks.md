@@ -121,13 +121,13 @@
 **Independent Test**: Run `osr search "..."`, `osr info <ns>/<slug>`, `osr pull <ns>/<slug>`, and `osr verify ./downloaded/` confirming all file hashes match.
 
 ### Tests for User Story 3
-- [ ] T036 [P] [US3] Unit and CLI test for `osr search`, `osr info`, `osr pull`, and `osr verify` in `tests/unit/test_cli_commands.py`
+- [x] T036 [P] [US3] Unit and CLI test for `osr search`, `osr info`, `osr pull`, and `osr verify` in `tests/unit/test_cli_commands.py`
 
 ### Implementation for User Story 3
-- [ ] T037 [US3] Implement `osr search` command in `src/open_skill_registry/cli/commands/search.py` displaying formatted table or JSON results
-- [ ] T038 [US3] Implement `osr info` command in `src/open_skill_registry/cli/commands/info.py` displaying metadata, tags, and version history
-- [ ] T039 [US3] Implement `osr pull` command in `src/open_skill_registry/cli/commands/pull.py` following the 5-step pull algorithm, streaming individual files to `.agents/skills/` or custom directory, and verifying local hashes
-- [ ] T040 [US3] Implement `osr verify` command in `src/open_skill_registry/cli/commands/verify.py` checking local directory files against remote or local release manifest
+- [x] T037 [US3] Implement `osr search` command in `src/open_skill_registry/cli/commands/search.py` displaying formatted table or JSON results
+- [x] T038 [US3] Implement `osr info` command in `src/open_skill_registry/cli/commands/info.py` displaying metadata, tags, and version history
+- [x] T039 [US3] Implement `osr pull` command in `src/open_skill_registry/cli/commands/pull.py` following the 5-step pull algorithm, streaming individual files to `.agents/skills/` or custom directory, and verifying local hashes
+- [x] T040 [US3] Implement `osr verify` command in `src/open_skill_registry/cli/commands/verify.py` checking local directory files against remote or local release manifest
 
 **Checkpoint**: Developers can search, inspect, pull, and cryptographically verify skills via CLI.
 
