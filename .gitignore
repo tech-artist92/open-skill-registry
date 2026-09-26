@@ -33,3 +33,4 @@ storage/
 # Graphify analysis outputs
 graphify-out/
 
+.worktrees/
