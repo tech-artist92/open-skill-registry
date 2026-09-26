@@ -16,6 +16,7 @@ class ResponseEnvelope(BaseModel, Generic[T]):
     error: str | None = None
     code: int = 200
     meta: dict[str, Any] | None = None
+    message: str | None = None
 
 
 class Page(BaseModel, Generic[T]):

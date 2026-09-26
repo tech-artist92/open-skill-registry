@@ -217,7 +217,7 @@ class PgVectorStorage(BaseStorage):
             
             stmt = select(Skill, Namespace.slug.label("ns_slug"), rank.label("text_score"), SkillVersion)
             stmt = stmt.join(Namespace)
-            stmt = stmt.outerjoin(SkillVersion, Skill.latest_version_id == SkillVersion.id)
+            stmt = stmt.join(SkillVersion, Skill.latest_version_id == SkillVersion.id).where(SkillVersion.is_yanked == False)
             
             if query_vector:
                 stmt = stmt.outerjoin(SkillEmbedding, SkillVersion.id == SkillEmbedding.version_id)
@@ -302,6 +302,22 @@ class PgVectorStorage(BaseStorage):
                 ver_res = await session.execute(select(SkillVersion).where(SkillVersion.id == tag.version_id))
                 return ver_res.scalar_one_or_none()
             
+            # If constraint is "latest" and no tag exists, check skill.latest_version_id
+            if constraint == "latest":
+                skill_res = await session.execute(
+                    select(Skill).join(Namespace).where(Namespace.slug == namespace, Skill.slug == slug)
+                )
+                skill = skill_res.scalar_one_or_none()
+                if skill and skill.latest_version_id:
+                    ver_res = await session.execute(
+                        select(SkillVersion).where(
+                            SkillVersion.id == skill.latest_version_id,
+                            SkillVersion.is_yanked == False,
+                        )
+                    )
+                    return ver_res.scalar_one_or_none()
+                return None
+
             return await self.get_skill_version(namespace, slug, constraint)
 
     async def resolve_by_hash(self, namespace: str, slug: str, content_hash: str) -> Optional[SkillVersion]:
@@ -348,13 +364,52 @@ class PgVectorStorage(BaseStorage):
 
     async def yank_version(self, namespace: str, slug: str, version: str) -> None:
         async with self.session_maker() as session:
-            ver = await self.get_skill_version(namespace, slug, version)
-            if not ver:
-                raise ValueError(f"Version {version} not found")
-            ver_id = ver.id
-            v_res = await session.execute(select(SkillVersion).where(SkillVersion.id == ver_id))
-            v = v_res.scalar_one()
-            v.is_yanked = True
+            stmt = (
+                select(SkillVersion, Skill)
+                .join(Skill, SkillVersion.skill_id == Skill.id)
+                .join(Namespace, Skill.namespace_id == Namespace.id)
+                .where(Namespace.slug == namespace, Skill.slug == slug, SkillVersion.version == version)
+            )
+            res = await session.execute(stmt)
+            row = res.first()
+            if not row:
+                raise ValueError(f"Version {version} not found for skill {namespace}/{slug}")
+            sv, skill = row
+            sv.is_yanked = True
+
+            # Check existing "latest" ReleaseTag
+            latest_tag_res = await session.execute(
+                select(ReleaseTag).where(ReleaseTag.skill_id == skill.id, ReleaseTag.tag_name == "latest")
+            )
+            latest_tag = latest_tag_res.scalar_one_or_none()
+
+            # If the yanked version was latest_version_id or the latest tag points to it:
+            if skill.latest_version_id == sv.id or (latest_tag and latest_tag.version_id == sv.id):
+                # Query newest non-yanked version
+                newest_res = await session.execute(
+                    select(SkillVersion)
+                    .where(
+                        SkillVersion.skill_id == skill.id,
+                        SkillVersion.is_yanked == False,
+                        SkillVersion.id != sv.id,
+                    )
+                    .order_by(SkillVersion.created_at.desc())
+                )
+                newest = newest_res.scalars().first()
+                if newest:
+                    skill.latest_version_id = newest.id
+                    if latest_tag:
+                        latest_tag.version_id = newest.id
+                        latest_tag.updated_at = get_utc_now()
+                    else:
+                        new_tag = ReleaseTag(skill_id=skill.id, tag_name="latest", version_id=newest.id)
+                        session.add(new_tag)
+                else:
+                    skill.latest_version_id = None
+                    if latest_tag:
+                        await session.delete(latest_tag)
+
+            skill.updated_at = get_utc_now()
             await session.commit()
 
     async def list_skills(
@@ -369,7 +424,7 @@ class PgVectorStorage(BaseStorage):
         from open_skill_registry.models.response import Page
         async with self.session_maker() as session:
             stmt = select(Skill, Namespace.slug.label("ns_slug"), SkillVersion).join(Namespace)
-            stmt = stmt.outerjoin(SkillVersion, Skill.latest_version_id == SkillVersion.id)
+            stmt = stmt.join(SkillVersion, Skill.latest_version_id == SkillVersion.id).where(SkillVersion.is_yanked == False)
             if namespace:
                 stmt = stmt.where(Namespace.slug == namespace)
 

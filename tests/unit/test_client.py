@@ -45,6 +45,9 @@ def mock_handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(400, json={"detail": "Bad request"})
         return httpx.Response(200, json={"data": {"status": "published"}})
 
+    if method == "DELETE" and path == "/api/v1/skills/public/myskill/versions/1.0.0":
+        return httpx.Response(200, json={"code": 200, "data": {"version": "1.0.0", "is_yanked": True}})
+
     return httpx.Response(404, json={"detail": "Not found"})
 
 
@@ -167,3 +170,12 @@ def test_sync_context_manager(mock_transport):
     with SkillRegistryClient(transport=mock_transport, base_url="http://testserver") as client:
         res = client.list_skills()
         assert res == {"items": [], "total": 0}
+
+@pytest.mark.asyncio
+async def test_async_yank_version(async_client):
+    res = await async_client.yank_version("public", "myskill", "1.0.0")
+    assert res == {"version": "1.0.0", "is_yanked": True}
+
+def test_sync_yank_version(sync_client):
+    res = sync_client.yank_version("public", "myskill", "1.0.0")
+    assert res == {"version": "1.0.0", "is_yanked": True}

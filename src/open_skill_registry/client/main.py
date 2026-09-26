@@ -141,6 +141,21 @@ class AsyncSkillRegistryClient:
         response = await self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}")
         return _handle_response(response)
 
+    async def yank_version(self, namespace: str, slug: str, version: str) -> Dict[str, Any]:
+        """
+        Yank a faulty skill version.
+
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            version: The version string to yank.
+
+        Returns:
+            Dictionary containing the yanked version details.
+        """
+        response = await self._client.delete(f"/api/v1/skills/{namespace}/{slug}/versions/{version}")
+        return _handle_response(response)
+
     async def get_instructions(self, namespace: str, slug: str, version: str) -> str:
         """
         Get instructions for a specific version of a skill.
@@ -378,6 +393,21 @@ class SkillRegistryClient:
             Version metadata.
         """
         response = self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}")
+        return _handle_response(response)
+
+    def yank_version(self, namespace: str, slug: str, version: str) -> Dict[str, Any]:
+        """
+        Yank a faulty skill version.
+
+        Args:
+            namespace: The namespace of the skill.
+            slug: The slug of the skill.
+            version: The version string to yank.
+
+        Returns:
+            Dictionary containing the yanked version details.
+        """
+        response = self._client.delete(f"/api/v1/skills/{namespace}/{slug}/versions/{version}")
         return _handle_response(response)
 
     def get_instructions(self, namespace: str, slug: str, version: str) -> str:

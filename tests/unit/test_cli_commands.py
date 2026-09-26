@@ -257,3 +257,28 @@ def test_pull_content_hash(tmp_path):
         assert result.exit_code == 0
         assert "Content Hash: testhash" in result.stdout
 
+
+def test_yank_command():
+    with patch("open_skill_registry.cli.commands.yank.SkillRegistryClient") as mock_class:
+        mock_instance = MagicMock()
+        mock_instance.__enter__.return_value = mock_instance
+        mock_class.return_value = mock_instance
+
+        result = runner.invoke(app, ["yank", "public/my-skill", "1.0.0"])
+        assert result.exit_code == 0
+        assert "Successfully yanked public/my-skill@1.0.0" in result.stdout
+        mock_instance.yank_version.assert_called_once_with("public", "my-skill", "1.0.0")
+
+
+def test_yank_command_error():
+    with patch("open_skill_registry.cli.commands.yank.SkillRegistryClient") as mock_class:
+        mock_instance = MagicMock()
+        mock_instance.__enter__.return_value = mock_instance
+        mock_class.return_value = mock_instance
+        mock_instance.yank_version.side_effect = RuntimeError("Failed to yank")
+
+        result = runner.invoke(app, ["yank", "public/my-skill", "1.0.0"])
+        assert result.exit_code != 0
+        assert "Failed to yank" in result.stderr or "Failed to yank" in result.stdout
+
+
