@@ -1,0 +1,2 @@
+class DuplicateVersionError(Exception):
+    pass

@@ -2,12 +2,13 @@ from pathlib import Path
 
 import typer
 
-from open_skill_registry.cli.commands import init, serve
+from open_skill_registry.cli.commands import init, serve, push
 
 app = typer.Typer(name="osr", help="Open Skill Registry CLI", no_args_is_help=True)
 
 app.add_typer(init.app, name="init", help="Initialize configuration")
 app.add_typer(serve.app, name="serve", help="Start the FastAPI server")
+app.add_typer(push.app, name="push", help="Push a skill to the registry")
 
 def version_callback(value: bool):
     if value:
