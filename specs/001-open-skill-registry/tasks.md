@@ -180,11 +180,11 @@
 **Independent Test**: Call `DELETE .../versions/1.0.0` or run `osr yank`, verify search excludes version, verify explicit fetch returns `is_yanked: true` and `X-Skill-Warning: Yanked` header.
 
 ### Tests for User Story 7
-- [ ] T050 [P] [US7] Contract test for version yanking in `tests/contract/test_yank_endpoint.py`
+- [x] T050 [P] [US7] Contract test for version yanking in `tests/contract/test_yank_endpoint.py`
 
 ### Implementation for User Story 7
-- [ ] T051 [US7] Implement version yanking route in `src/open_skill_registry/server/routes/skills.py` (`DELETE /api/v1/skills/{namespace}/{slug}/versions/{version}`) setting `is_yanked=true` and injecting warning headers
-- [ ] T052 [US7] Implement `osr yank` command in `src/open_skill_registry/cli/commands/yank.py`
+- [x] T051 [US7] Implement version yanking route in `src/open_skill_registry/server/routes/skills.py` (`DELETE /api/v1/skills/{namespace}/{slug}/versions/{version}`) setting `is_yanked=true` and injecting warning headers
+- [x] T052 [US7] Implement `osr yank` command in `src/open_skill_registry/cli/commands/yank.py`
 
 **Checkpoint**: Soft-deletion and warning propagation functional.
 
