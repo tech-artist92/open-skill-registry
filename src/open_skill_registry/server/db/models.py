@@ -153,7 +153,7 @@ class ApiKey(SQLModel, table=True):
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     key_hash: str
-    key_prefix: str = Field(max_length=8)
+    key_prefix: str = Field(max_length=16)
     label: str
     namespace_id: uuid.UUID | None = Field(default=None, foreign_key="namespaces.id")
     permissions: str

@@ -125,7 +125,8 @@ async def test_api_key_lifecycle(secured_app):
         raw_key = key_data["raw_key"]
         key_id = key_data["id"]
         assert raw_key.startswith("osr_live_")
-        assert key_data["key_prefix"] == raw_key[:8]
+        assert key_data["key_prefix"] == raw_key[:12]
+        assert len(key_data["key_prefix"]) == 12
         assert key_data["namespace_slug"] == "core-team"
 
         # 3. List keys - raw key must not be exposed
@@ -545,3 +546,164 @@ async def test_auth_edge_cases(secured_app, monkeypatch):
             json={"slug": "bad-vis-ns", "name": "Bad Vis", "visibility": "INVALID"},
         )
         assert res.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_invalid_visibility_on_publish(secured_app):
+    """Publishing a skill with invalid visibility returns 400 Bad Request."""
+    async with AsyncClient(
+        transport=ASGITransport(app=secured_app), base_url="http://test"
+    ) as client:
+        # Create namespace
+        await client.post(
+            "/api/v1/namespaces",
+            headers=ADMIN_HEADERS,
+            json={"slug": "vis-test-ns", "name": "Vis Test NS"},
+        )
+
+        skill_content = (
+            b"---\nname: vis skill\nversion: 1.0.0\ndescription: vis test\n---\ninstructions"
+        )
+
+        # 1. Invalid visibility -> 400
+        res = await client.post(
+            "/api/v1/skills/publish",
+            headers=ADMIN_HEADERS,
+            data={"namespace": "vis-test-ns", "slug": "vis-skill-bad", "visibility": "INVALID_VIS"},
+            files={"file": ("SKILL.md", skill_content, "text/markdown")},
+        )
+        assert res.status_code == 400
+        err_msg = res.json().get("detail") or res.json().get("error") or ""
+        assert "Invalid visibility" in err_msg
+
+        # 2. Case normalization (e.g. lowercase "private" is normalized to "PRIVATE" and succeeds)
+        res = await client.post(
+            "/api/v1/skills/publish",
+            headers=ADMIN_HEADERS,
+            data={"namespace": "vis-test-ns", "slug": "vis-skill-good", "visibility": "private"},
+            files={"file": ("SKILL.md", skill_content, "text/markdown")},
+        )
+        assert res.status_code == 201
+
+        # Check detail returns visibility as "PRIVATE"
+        res = await client.get("/api/v1/skills/vis-test-ns/vis-skill-good", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
+        assert res.json()["data"]["visibility"] == "PRIVATE"
+
+
+@pytest.mark.asyncio
+async def test_write_only_key_cannot_read_private_skills(secured_app):
+    """Keys with only WRITE permission cannot read private skills in their namespace."""
+    async with AsyncClient(
+        transport=ASGITransport(app=secured_app), base_url="http://test"
+    ) as client:
+        # 1. Create namespace
+        await client.post(
+            "/api/v1/namespaces",
+            headers=ADMIN_HEADERS,
+            json={"slug": "write-only-ns", "name": "Write Only NS", "visibility": "PRIVATE"},
+        )
+
+        # 2. Issue a write-only key (permissions=["WRITE"])
+        res = await client.post(
+            "/api/v1/keys",
+            headers=ADMIN_HEADERS,
+            json={
+                "label": "Write-Only Key",
+                "namespace_slug": "write-only-ns",
+                "permissions": ["WRITE"],
+            },
+        )
+        assert res.status_code == 201
+        write_key = res.json()["data"]["raw_key"]
+        write_headers = {"Authorization": f"Bearer {write_key}"}
+
+        # 3. Publish a private skill using write-only key
+        skill_content = (
+            b"---\nname: secret skill\nversion: 1.0.0\ndescription: write only\n---\ninstructions"
+        )
+        res = await client.post(
+            "/api/v1/skills/publish",
+            headers=write_headers,
+            data={"namespace": "write-only-ns", "slug": "secret-skill", "visibility": "PRIVATE"},
+            files={"file": ("SKILL.md", skill_content, "text/markdown")},
+        )
+        assert res.status_code == 201
+
+        # 4. Attempt to read skill metadata using write-only key -> 403 Forbidden
+        res = await client.get("/api/v1/skills/write-only-ns/secret-skill", headers=write_headers)
+        assert res.status_code == 403
+        err_msg = res.json().get("detail") or res.json().get("error") or ""
+        assert "insufficient permissions" in err_msg.lower()
+
+        # 5. Attempt to read version data -> 403 Forbidden
+        res = await client.get(
+            "/api/v1/skills/write-only-ns/secret-skill/versions/1.0.0",
+            headers=write_headers,
+        )
+        assert res.status_code == 403
+
+        # 6. Attempt to read instructions -> 403 Forbidden
+        res = await client.get(
+            "/api/v1/skills/write-only-ns/secret-skill/versions/1.0.0/instructions",
+            headers=write_headers,
+        )
+        assert res.status_code == 403
+
+        # 7. Search skills with write-only key -> private skill is excluded
+        res = await client.get(
+            "/api/v1/skills/search",
+            headers=write_headers,
+            params={"q": "secret"},
+        )
+        assert res.status_code == 200
+        items = res.json()["data"]["items"]
+        assert not any(item["slug"] == "secret-skill" for item in items)
+
+        # 8. Admin key CAN read the private skill -> 200 OK
+        res = await client.get("/api/v1/skills/write-only-ns/secret-skill", headers=ADMIN_HEADERS)
+        assert res.status_code == 200
+        assert res.json()["data"]["slug"] == "secret-skill"
+
+
+@pytest.mark.asyncio
+async def test_invalid_permission_on_key_creation(secured_app):
+    """Issuing an API key with invalid permissions returns 400 Bad Request."""
+    async with AsyncClient(
+        transport=ASGITransport(app=secured_app), base_url="http://test"
+    ) as client:
+        # Invalid permission in list
+        res = await client.post(
+            "/api/v1/keys",
+            headers=ADMIN_HEADERS,
+            json={
+                "label": "Invalid Perm Key",
+                "permissions": ["SUPERADMIN"],
+            },
+        )
+        assert res.status_code == 400
+        err_msg = res.json().get("detail") or res.json().get("error") or ""
+        assert "Invalid permission" in err_msg
+
+        # Another invalid permission
+        res = await client.post(
+            "/api/v1/keys",
+            headers=ADMIN_HEADERS,
+            json={
+                "label": "Invalid Perm Key 2",
+                "permissions": ["READ", "EXECUTE"],
+            },
+        )
+        assert res.status_code == 400
+
+        # Empty permissions list
+        res = await client.post(
+            "/api/v1/keys",
+            headers=ADMIN_HEADERS,
+            json={
+                "label": "Empty Perm Key",
+                "permissions": [],
+            },
+        )
+        assert res.status_code == 400
+

@@ -38,6 +38,15 @@ class PgVectorStorage(BaseStorage):
         model_name: Optional[str] = None,
         visibility: Optional[str] = "PUBLIC",
     ) -> SkillVersion:
+        if visibility is not None:
+            visibility = visibility.upper().strip()
+            if not visibility:
+                visibility = None
+            elif visibility not in {"PUBLIC", "NAMESPACE_ONLY", "PRIVATE"}:
+                raise ValueError(
+                    f"Invalid visibility '{visibility}'. Must be one of: PUBLIC, NAMESPACE_ONLY, PRIVATE"
+                )
+
         async with self.session_maker() as session:
             ns = await self._get_or_create_namespace(session, namespace)
 

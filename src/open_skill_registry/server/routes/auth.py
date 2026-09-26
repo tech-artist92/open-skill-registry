@@ -22,8 +22,11 @@ class CreateKeyRequest(BaseModel):
     label: str = Field(..., min_length=1, max_length=128)
     namespace_slug: str | None = None
     namespace_id: uuid.UUID | None = None
-    permissions: list[str] | None = Field(default_factory=lambda: ["READ", "WRITE"])
+    permissions: list[str] | str | None = Field(default_factory=lambda: ["READ", "WRITE"])
     expires_at: datetime | None = None
+
+
+ALLOWED_PERMISSIONS = {"READ", "WRITE", "ADMIN"}
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -33,6 +36,36 @@ async def create_api_key(
     auth: AuthContext = Depends(require_admin),
 ):
     """Issue a new API key (Admin only)."""
+    # Validate permissions
+    if body.permissions is None:
+        perms_input = ["READ", "WRITE"]
+    elif isinstance(body.permissions, str):
+        perms_input = [p.strip() for p in body.permissions.split(",") if p.strip()]
+    elif isinstance(body.permissions, list):
+        perms_input = body.permissions
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Permissions must be a list of strings",
+        )
+
+    if not perms_input:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Permissions list cannot be empty",
+        )
+
+    perms_list = []
+    for p in perms_input:
+        if not isinstance(p, str) or p.upper().strip() not in ALLOWED_PERMISSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid permission '{p}'. Allowed permissions are: READ, WRITE, ADMIN",
+            )
+        perms_list.append(p.upper().strip())
+
+    permissions_str = ",".join(perms_list)
+
     target_ns_id = body.namespace_id
     ns_slug = body.namespace_slug
 
@@ -53,11 +86,8 @@ async def create_api_key(
 
     # Generate cryptographically secure token
     raw_key = f"osr_live_{secrets.token_hex(20)}"
-    key_prefix = raw_key[:8]
+    key_prefix = raw_key[:12]
     key_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
-
-    perms_list = [p.upper() for p in (body.permissions or ["READ", "WRITE"])]
-    permissions_str = ",".join(perms_list)
 
     api_key = ApiKey(
         key_hash=key_hash,

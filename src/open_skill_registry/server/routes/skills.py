@@ -20,15 +20,25 @@ from open_skill_registry.server.middleware.auth import (
 router = APIRouter(prefix="/api/v1/skills", tags=["skills"])
 
 
+ALLOWED_VISIBILITIES = {"PUBLIC", "NAMESPACE_ONLY", "PRIVATE"}
+
+
 def check_skill_read_permission(skill, namespace: str, auth: AuthContext) -> None:
     """Ensure caller has permission to view skill."""
     if getattr(skill, "visibility", "PUBLIC") != "PUBLIC":
-        if not auth.is_admin and auth.namespace_slug != namespace:
-            if not auth.is_authenticated:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Authentication required",
-                )
+        if not auth.is_authenticated:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required",
+            )
+        if auth.is_admin:
+            return
+        if auth.namespace_slug != namespace:
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: insufficient permissions for namespace",
+            )
+        if "READ" not in auth.permissions and "ADMIN" not in auth.permissions:
             raise HTTPException(
                 status_code=403,
                 detail="Forbidden: insufficient permissions for namespace",
@@ -46,6 +56,16 @@ async def publish_skill(
     auth: AuthContext = Depends(get_auth_context),
 ):
     verify_namespace_write(auth, namespace)
+
+    if visibility is not None:
+        visibility = visibility.upper().strip()
+        if not visibility:
+            visibility = None
+        elif visibility not in ALLOWED_VISIBILITIES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid visibility '{visibility}'. Must be one of: PUBLIC, NAMESPACE_ONLY, PRIVATE",
+            )
 
     config = getattr(request.app.state, "config", None)
     storage = getattr(request.app.state, "storage", None)
@@ -115,9 +135,10 @@ async def search_skills(
     if not storage:
         raise HTTPException(status_code=500, detail="Storage not initialized")
     
+    has_read = "READ" in auth.permissions or "ADMIN" in auth.permissions
     allowed_namespaces = (
         [auth.namespace_slug]
-        if (auth.is_authenticated and auth.namespace_slug)
+        if (auth.is_authenticated and auth.namespace_slug and has_read)
         else ([] if not auth.is_admin else None)
     )
     search_service = SearchService(storage, config)
@@ -154,9 +175,10 @@ async def list_skills(
     if not storage:
         raise HTTPException(status_code=500, detail="Storage not initialized")
     
+    has_read = "READ" in auth.permissions or "ADMIN" in auth.permissions
     allowed_namespaces = (
         [auth.namespace_slug]
-        if (auth.is_authenticated and auth.namespace_slug)
+        if (auth.is_authenticated and auth.namespace_slug and has_read)
         else ([] if not auth.is_admin else None)
     )
     page_result = await storage.list_skills(

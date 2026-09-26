@@ -141,7 +141,7 @@ def upgrade() -> None:
         'api_keys',
         sa.Column('id', sa.Uuid(), nullable=False),
         sa.Column('key_hash', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column('key_prefix', sqlmodel.sql.sqltypes.AutoString(length=8), nullable=False),
+        sa.Column('key_prefix', sqlmodel.sql.sqltypes.AutoString(length=16), nullable=False),
         sa.Column('label', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('namespace_id', sa.Uuid(), nullable=True),
         sa.Column('permissions', sqlmodel.sql.sqltypes.AutoString(), nullable=False),

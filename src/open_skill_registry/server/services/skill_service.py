@@ -32,6 +32,16 @@ class SkillService:
             if ".." in filepath or filepath.startswith("/"):
                 raise ValueError(f"Path traversal detected: {filepath}")
 
+        # Validate visibility if provided
+        if visibility is not None:
+            visibility = visibility.upper().strip()
+            if not visibility:
+                visibility = None
+            elif visibility not in {"PUBLIC", "NAMESPACE_ONLY", "PRIVATE"}:
+                raise ValueError(
+                    f"Invalid visibility '{visibility}'. Must be one of: PUBLIC, NAMESPACE_ONLY, PRIVATE"
+                )
+
         # Core validation
         validate_package_or_raise(files)
         

@@ -2,8 +2,10 @@
 
 import hashlib
 import os
+import secrets
 import uuid
 from dataclasses import dataclass, field
+from datetime import UTC
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -73,7 +75,7 @@ async def get_auth_context(
         )
 
     # Check Bootstrap Admin Key
-    if admin_key and token == admin_key:
+    if admin_key and secrets.compare_digest(token, admin_key):
         return AuthContext(
             is_authenticated=True,
             is_admin=True,
@@ -107,9 +109,20 @@ async def get_auth_context(
                 detail="Invalid or expired API key",
             )
 
-    # Update last_used_at
-    api_key.last_used_at = now
-    await db.commit()
+    # Throttle last_used_at database writes on reads (at most once every 60 seconds)
+    should_update_last_used = False
+    if api_key.last_used_at is None:
+        should_update_last_used = True
+    else:
+        last_used = api_key.last_used_at
+        if last_used.tzinfo is None:
+            last_used = last_used.replace(tzinfo=UTC)
+        if (now - last_used).total_seconds() > 60:
+            should_update_last_used = True
+
+    if should_update_last_used:
+        api_key.last_used_at = now
+        await db.commit()
 
     # Resolve namespace slug if scoped
     ns_slug = None
