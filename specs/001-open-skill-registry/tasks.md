@@ -96,19 +96,19 @@
 **Independent Test**: Use ADK `OpenSkillRegistry` or REST API to search `"query optimization"`, verify ranked results, fetch L2 markdown, and stream an L3 resource via `/file?path=...`.
 
 ### Tests for User Story 1
-- [ ] T030 [P] [US1] Contract test for search, version detail, instructions, and file streaming endpoints in `tests/contract/test_retrieval_endpoints.py`
-- [ ] T031 [P] [US1] Integration test for Google ADK `SkillToolset` with `OpenSkillRegistry` in `tests/adk/test_adk_integration.py`
+- [x] T030 [P] [US1] Contract test for search, version detail, instructions, and file streaming endpoints in `tests/contract/test_retrieval_endpoints.py`
+- [x] T031 [P] [US1] Integration test for Google ADK `SkillToolset` with `OpenSkillRegistry` in `tests/adk/test_adk_integration.py`
 
-- [ ] T032 [US1] Implement search service in `src/open_skill_registry/server/services/search_service.py` featuring hybrid search: default local FastEmbed ONNX model (`BAAI/bge-small-en-v1.5`, 384-dim, 0 API keys) blended with PostgreSQL `ts_rank_cd(tsv, query, 32)` weighted `'{0.1, 0.2, 0.4, 1.0}'` prioritizing Name/Slug (A: 1.0) and Description (B: 0.4) via Reciprocal Rank Fusion (RRF), with graceful pure syntactic fallback when `provider: none` (FR-003, FR-004)
-- [ ] T033 [US1] Implement search and retrieval endpoints in `src/open_skill_registry/server/routes/skills.py`:
+- [x] T032 [US1] Implement search service in `src/open_skill_registry/server/services/search_service.py` featuring hybrid search: default local FastEmbed ONNX model (`BAAI/bge-small-en-v1.5`, 384-dim, 0 API keys) blended with PostgreSQL `ts_rank_cd(tsv, query, 32)` weighted `'{0.1, 0.2, 0.4, 1.0}'` prioritizing Name/Slug (A: 1.0) and Description (B: 0.4) via Reciprocal Rank Fusion (RRF), with graceful pure syntactic fallback when `provider: none` (FR-003, FR-004)
+- [x] T033 [US1] Implement search and retrieval endpoints in `src/open_skill_registry/server/routes/skills.py`:
   - `GET /api/v1/skills/search` (hybrid search with `q`, `limit`, `namespace`)
   - `GET /api/v1/skills` (paginated list with `sort` by `updated`, `downloads`, `name`)
   - `GET /api/v1/skills/{namespace}/{slug}` (overview and tags)
   - `GET /api/v1/skills/{namespace}/{slug}/versions/{version}` (L1 frontmatter + manifest + compliance snapshot)
   - `GET /api/v1/skills/{namespace}/{slug}/versions/{version}/instructions` (L2 markdown)
   - `GET /api/v1/skills/{namespace}/{slug}/versions/{version}/file?path={relpath}` (L3 query-param safe resource streaming)
-- [ ] T034 [US1] Implement hosted HTTP client in `src/open_skill_registry/client/main.py` (`SkillRegistryClient` and `AsyncSkillRegistryClient`) wrapping the REST API endpoints
-- [ ] T035 [US1] Implement Google ADK adapter `OpenSkillRegistry` in `src/open_skill_registry/adk.py` supporting both embedded mode (`registry=...`) and hosted mode (`endpoint=...`) with error handling per `adk-contract.md`
+- [x] T034 [US1] Implement hosted HTTP client in `src/open_skill_registry/client/main.py` (`SkillRegistryClient` and `AsyncSkillRegistryClient`) wrapping the REST API endpoints
+- [x] T035 [US1] Implement Google ADK adapter `OpenSkillRegistry` in `src/open_skill_registry/adk.py` supporting both embedded mode (`registry=...`) and hosted mode (`endpoint=...`) with error handling per `adk-contract.md`
 
 **Checkpoint**: Full end-to-end agent discovery and L1/L2/L3 loading functional across both hosted and embedded modes.
 
