@@ -65,14 +65,14 @@ All tasks must be implemented adhering to the **Functional & Declarative** parad
 **Independent Test**: Execute a standalone Python script that initializes `SkillRegistry(config=...)`, publishes a skill, and queries it with zero HTTP network calls.
 
 ### Tests for User Story 9
-- [ ] T019 [P] [US9] Unit test for manifest hashing and validation in `tests/unit/test_manifest.py` and `tests/unit/test_validator.py`
-- [ ] T020 [P] [US9] Integration test for embedded library engine `SkillRegistry` across both SQLite in-memory and PostgreSQL testcontainers in `tests/integration/test_embedded_registry.py`
+- [x] T019 [P] [US9] Unit test for manifest hashing and validation in `tests/unit/test_manifest.py` and `tests/unit/test_validator.py`
+- [x] T020 [P] [US9] Integration test for embedded library engine `SkillRegistry` across both SQLite in-memory and PostgreSQL testcontainers in `tests/integration/test_embedded_registry.py`
 
 ### Implementation for User Story 9
-- [ ] T021 [US9] Implement base storage provider contract in `src/open_skill_registry/registry/storage/base.py` defining async methods (`save_skill_version`, `get_skill_version`, `search_skills`, `resolve_version`, `tag_version`, `yank_version`)
-- [ ] T022 [US9] Implement storage backends in `src/open_skill_registry/registry/storage/`: PostgreSQL + pgvector backend in `pgvector.py` and SQLite + in-process vector cosine similarity/FTS5 backend in `sqlite.py` implementing the storage contract with SQLAlchemy async sessions and aiosqlite
-- [ ] T023 [US9] Implement `SkillRegistry` and `AsyncSkillRegistry` facade in `src/open_skill_registry/registry/main.py` orchestrating storage, embeddings, manifest generation, and version resolution
-- [ ] T024 [US9] Export `SkillRegistry`, `AsyncSkillRegistry`, and `RegistryConfig` from `src/open_skill_registry/__init__.py`
+- [x] T021 [US9] Implement base storage provider contract in `src/open_skill_registry/registry/storage/base.py` defining async methods (`save_skill_version`, `get_skill_version`, `search_skills`, `resolve_version`, `tag_version`, `yank_version`)
+- [x] T022 [US9] Implement storage backends in `src/open_skill_registry/registry/storage/`: PostgreSQL + pgvector backend in `pgvector.py` and SQLite + in-process vector cosine similarity/FTS5 backend in `sqlite.py` implementing the storage contract with SQLAlchemy async sessions and aiosqlite
+- [x] T023 [US9] Implement `SkillRegistry` and `AsyncSkillRegistry` facade in `src/open_skill_registry/registry/main.py` orchestrating storage, embeddings, manifest generation, and version resolution
+- [x] T024 [US9] Export `SkillRegistry`, `AsyncSkillRegistry`, and `RegistryConfig` from `src/open_skill_registry/__init__.py`
 
 **Checkpoint**: Embedded library works in pure Python with zero server dependencies.
 
