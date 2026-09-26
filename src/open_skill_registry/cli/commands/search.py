@@ -4,7 +4,7 @@ from rich.table import Table
 import json
 from open_skill_registry.client.main import SkillRegistryClient
 
-app = typer.Typer()
+
 console = Console()
 
 
@@ -15,13 +15,14 @@ def search(
     namespace: str = typer.Option(None, "--namespace", help="Filter by namespace.")
 ):
     """Search for skills in the registry."""
-    client = SkillRegistryClient(
-        base_url=ctx.obj.get("registry_url"),
-        api_key=ctx.obj.get("api_key")
-    )
+    registry_url = (ctx.obj or {}).get("registry_url") or "http://localhost:8080"
     
     try:
-        results = client.search(query=query, limit=limit, namespace=namespace)
+        with SkillRegistryClient(
+            base_url=registry_url,
+            api_key=(ctx.obj or {}).get("api_key")
+        ) as client:
+            results = client.search(query=query, limit=limit, namespace=namespace)
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(code=1)

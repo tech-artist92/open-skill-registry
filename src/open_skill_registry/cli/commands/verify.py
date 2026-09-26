@@ -6,7 +6,7 @@ from open_skill_registry.client.main import SkillRegistryClient
 from open_skill_registry.registry.core.validator import validate_package
 from open_skill_registry.registry.core.manifest import compute_manifest
 
-app = typer.Typer()
+
 console = Console()
 
 def parse_skill_name(skill: str) -> tuple[str, str]:
@@ -29,41 +29,44 @@ def verify(
         raise typer.Exit(1)
 
     if remote:
-        client = SkillRegistryClient(
-            base_url=ctx.obj.get("registry_url"),
-            api_key=ctx.obj.get("api_key")
-        )
+        registry_url = (ctx.obj or {}).get("registry_url") or "http://localhost:8080"
         ns, slug = parse_skill_name(remote)
         
         try:
-            if not version:
-                skill_info = client.get_skill(ns, slug)
-                version = skill_info.get("release_tags", {}).get("latest")
+            with SkillRegistryClient(
+                base_url=registry_url,
+                api_key=(ctx.obj or {}).get("api_key")
+            ) as client:
                 if not version:
-                    console.print(f"[red]Could not resolve latest version for {remote}[/red]")
-                    raise typer.Exit(1)
-            
-            version_info = client.get_version(ns, slug, version)
-            manifest = version_info.get("manifest", {})
-            entries = manifest.get("entries", [])
-            
-            for entry in entries:
-                path = entry.get("path")
-                expected_hash = entry.get("hash")
+                    skill_info = client.get_skill(ns, slug)
+                    version = skill_info.get("release_tags", {}).get("latest")
+                    if not version:
+                        version = skill_info.get("tags", {}).get("latest") or skill_info.get("latest_version") or skill_info.get("version")
+                    if not version:
+                        console.print(f"[red]Could not resolve latest version for {remote}[/red]")
+                        raise typer.Exit(1)
                 
-                local_file = target_dir / path
-                if not local_file.exists():
-                    console.print(f"[red]Missing file: {path}[/red]")
-                    raise typer.Exit(1)
+                version_info = client.get_version(ns, slug, version)
+                manifest = version_info.get("manifest", {})
+                entries = manifest.get("entries", [])
                 
-                content = local_file.read_bytes()
-                computed_hash = hashlib.sha256(content).hexdigest()
-                
-                if computed_hash != expected_hash:
-                    console.print(f"[red]Hash mismatch for {path}: expected {expected_hash}, got {computed_hash}[/red]")
-                    raise typer.Exit(1)
+                for entry in entries:
+                    path = entry.get("path")
+                    expected_hash = entry.get("hash")
                     
-            console.print("[green]All files verified against remote manifest.[/green]")
+                    local_file = target_dir / path
+                    if not local_file.exists():
+                        console.print(f"[red]Missing file: {path}[/red]")
+                        raise typer.Exit(1)
+                    
+                    content = local_file.read_bytes()
+                    computed_hash = hashlib.sha256(content).hexdigest()
+                    
+                    if computed_hash != expected_hash:
+                        console.print(f"[red]Hash mismatch for {path}: expected {expected_hash}, got {computed_hash}[/red]")
+                        raise typer.Exit(1)
+                        
+                console.print("[green]All files verified against remote manifest.[/green]")
         except typer.Exit:
             raise
         except Exception as e:
@@ -79,10 +82,19 @@ def verify(
                     rel_path = file_path.relative_to(target_dir).as_posix()
                     files[rel_path] = file_path.read_bytes()
 
-            validate_package(files)
+            errors = validate_package(files)
+            if errors:
+                for err in errors:
+                    console.print(f"[red]Error: {err}[/red]")
+                raise typer.Exit(code=1)
+                
             manifest = compute_manifest(files)
             console.print("[green]Local package is valid.[/green]")
+            for p in sorted(files.keys()):
+                typer.echo(f"  - {p}")
             console.print(f"Content Hash: {manifest.content_hash}")
+        except typer.Exit:
+            raise
         except Exception as e:
             console.print(f"[red]Validation failed:[/red] {e}")
             raise typer.Exit(1)

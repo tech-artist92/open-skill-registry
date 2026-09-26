@@ -47,11 +47,12 @@ class AsyncSkillRegistryClient:
     """
     def __init__(
         self,
-        base_url: str = "http://localhost:8080",
+        base_url: Optional[str] = "http://localhost:8080",
         api_key: Optional[str] = None,
         timeout: float = 10.0,
         transport: Optional[httpx.AsyncBaseTransport] = None
     ):
+        base_url = base_url or "http://localhost:8080"
         self.base_url = base_url.rstrip("/")
         headers = {}
         if api_key:
@@ -224,11 +225,12 @@ class SkillRegistryClient:
     """
     def __init__(
         self,
-        base_url: str = "http://localhost:8080",
+        base_url: Optional[str] = "http://localhost:8080",
         api_key: Optional[str] = None,
         timeout: float = 10.0,
         transport: Optional[httpx.BaseTransport] = None
     ):
+        base_url = base_url or "http://localhost:8080"
         self.base_url = base_url.rstrip("/")
         headers = {}
         if api_key:

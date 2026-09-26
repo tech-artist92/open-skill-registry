@@ -16,6 +16,7 @@ def mock_client_class():
          patch("open_skill_registry.cli.commands.verify.SkillRegistryClient") as mock_verify:
         
         mock_instance = MagicMock()
+        mock_instance.__enter__.return_value = mock_instance
         mock_search.return_value = mock_instance
         mock_info.return_value = mock_instance
         mock_pull.return_value = mock_instance
@@ -190,8 +191,69 @@ def test_verify_local_only(tmp_path):
     # Just mock open_skill_registry.packaging.manifest.compute_manifest?
     with patch("open_skill_registry.cli.commands.verify.validate_package") as mock_validate, \
          patch("open_skill_registry.cli.commands.verify.compute_manifest") as mock_compute:
+        mock_validate.return_value = []
         mock_compute.return_value = MagicMock(content_hash="mocked_hash", entries=[])
         result = runner.invoke(app, ["verify", str(output_dir)])
         assert result.exit_code == 0
         assert "mocked_hash" in result.stdout
+
+
+def test_default_base_url():
+    with patch("open_skill_registry.cli.commands.search.SkillRegistryClient") as mock_class:
+        mock_instance = MagicMock()
+        mock_instance.__enter__.return_value = mock_instance
+        mock_class.return_value = mock_instance
+        
+        result = runner.invoke(app, ["search", "test"])
+        assert result.exit_code == 0
+        mock_class.assert_called_once_with(base_url="http://localhost:8080", api_key=None)
+
+def test_info_with_version():
+    with patch("open_skill_registry.cli.commands.info.SkillRegistryClient") as mock_class:
+        mock_instance = MagicMock()
+        mock_instance.__enter__.return_value = mock_instance
+        mock_class.return_value = mock_instance
+        mock_instance.get_version.return_value = {
+            "version": "1.0.0",
+            "content_hash": "test_hash",
+            "manifest": {"entries": [{}, {}]}
+        }
+        
+        result = runner.invoke(app, ["info", "test-skill", "--version", "1.0.0"])
+        assert result.exit_code == 0
+        assert "Version:" in result.stdout
+        assert "test_hash" in result.stdout
+        assert "2" in result.stdout
+
+def test_verify_local_invalid(tmp_path):
+    output_dir = tmp_path / "skills" / "test-skill"
+    output_dir.mkdir(parents=True)
+    
+    with patch("open_skill_registry.cli.commands.verify.validate_package") as mock_validate:
+        mock_validate.return_value = ["Missing SKILL.md"]
+        result = runner.invoke(app, ["verify", str(output_dir)])
+        assert result.exit_code == 1
+        assert "Error: Missing SKILL.md" in result.stdout
+
+def test_pull_content_hash(tmp_path):
+    with patch("open_skill_registry.cli.commands.pull.SkillRegistryClient") as mock_class:
+        mock_instance = MagicMock()
+        mock_instance.__enter__.return_value = mock_instance
+        mock_class.return_value = mock_instance
+        
+        mock_instance.get_skill.return_value = {
+            "release_tags": {"latest": "1.0.0"}
+        }
+        mock_instance.get_version.return_value = {
+            "version": "1.0.0",
+            "manifest": {
+                "content_hash": "testhash",
+                "entries": []
+            }
+        }
+        
+        output_dir = tmp_path / "skills" / "test-skill"
+        result = runner.invoke(app, ["pull", "test-skill", "--output", str(output_dir)])
+        assert result.exit_code == 0
+        assert "Content Hash: testhash" in result.stdout
 
