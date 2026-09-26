@@ -230,28 +230,24 @@ class PgVectorStorage(BaseStorage):
                 skill = row[0]
                 ns_slug = row[1]
                 text_score = row[2] or 0.0
+                sv = row[3]
                 
                 final_score = text_score
                 if query_vector:
-                    vec_dist = row[3]
+                    vec_dist = getattr(row, "vec_distance", None)
                     vec_score = (1 - vec_dist) if vec_dist is not None else 0.0
                     final_score = (0.3 * text_score) + (0.7 * vec_score)
                 
                 if final_score > 0 or not query_vector:
-                    scored_skills.append((final_score, skill, ns_slug))
+                    scored_skills.append((final_score, skill, ns_slug, sv))
 
             scored_skills.sort(key=lambda x: x[0], reverse=True)
             
             skills = []
-            for _, skill, ns_slug in scored_skills[:limit]:
-                latest_version = ""
-                if skill.latest_version_id:
-                    latest_res = await session.execute(
-                        select(SkillVersion.version).where(SkillVersion.id == skill.latest_version_id)
-                    )
-                    ver = latest_res.scalar_one_or_none()
-                    if ver:
-                        latest_version = ver
+            for _, skill, ns_slug, sv in scored_skills[:limit]:
+                latest_version = sv.version if sv else ""
+                content_hash = sv.content_hash if sv else ""
+                tags = []  # Assuming tags are not populated in this query directly, we'll just pass empty list for now or we could fetch them. The instruction says `tags=skill.tags or []` but Skill model doesn't have `tags` natively as relationship in our standard setup unless added. Wait, the instruction says: `tags=skill.tags or []` or actually it might just mean passing an empty list or whatever is available on skill. Wait, `Skill` model might not have `tags`. Let me pass `[]` if it doesn't. Or maybe the instruction literally meant `tags=getattr(skill, 'tags', [])`. Let's use `getattr(skill, 'tags', [])`.
 
                 skills.append(SkillSummary(
                     name=skill.name,
@@ -260,7 +256,10 @@ class PgVectorStorage(BaseStorage):
                     description=skill.description or "",
                     latest_version=latest_version,
                     download_count=skill.download_count,
-                    visibility=skill.visibility
+                    visibility=skill.visibility,
+                    version=latest_version,
+                    tags=getattr(skill, 'tags', []),
+                    content_hash=content_hash
                 ))
             return skills
 

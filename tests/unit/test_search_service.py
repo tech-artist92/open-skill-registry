@@ -87,3 +87,20 @@ async def test_search_service_vector_only_fallback(mock_storage, mock_config):
     
     results = await service.search("test")
     assert len(results) == 0
+
+@pytest.mark.asyncio
+async def test_search_service_semantic_disabled(mock_storage, mock_config):
+    mock_config.search.provider = "openai"
+    mock_config.search.semantic_enabled = False
+    
+    service = SearchService(mock_storage, mock_config)
+    assert service.embedder is None
+    
+    mock_storage.search_skills.return_value = [
+        SkillSummary(name="s3", slug="s3", namespace="ns", description="", latest_version="1.0", tags=[], content_hash="")
+    ]
+    
+    results = await service.search("test")
+    assert len(results) == 1
+    assert results[0]["item"].name == "s3"
+    assert results[0]["score"] == 1.0

@@ -13,6 +13,9 @@ class SearchService:
     def _init_embedder(self) -> Optional[BaseEmbeddingProvider]:
         if not self.config or not hasattr(self.config, 'search'):
             return None
+            
+        if hasattr(self.config.search, 'semantic_enabled') and self.config.search.semantic_enabled is False:
+            return None
         
         provider = self.config.search.provider
         if provider == "none" or not provider:

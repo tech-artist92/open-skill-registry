@@ -29,6 +29,7 @@ class SkillSummary(BaseModel):
     namespace: str
     description: str
     latest_version: str
+    version: str | None = None
     download_count: int = 0
     visibility: str = "PUBLIC"
     tags: list[str] = Field(default_factory=list)
