@@ -5,7 +5,8 @@ from open_skill_registry.server.db.session import (
     get_async_engine,
     get_session_factory,
     init_db,
-    get_db_session
+    get_db_session,
+    close_db
 )
 from open_skill_registry.server.db.models import Namespace
 from sqlmodel import select
@@ -14,6 +15,14 @@ from sqlmodel import select
 async def test_get_async_engine():
     engine = get_async_engine("sqlite+aiosqlite:///:memory:")
     assert isinstance(engine, AsyncEngine)
+    await engine.dispose()
+
+@pytest.mark.asyncio
+async def test_sqlite_tilde_expansion():
+    # It should expand ~ to user home
+    engine = get_async_engine("sqlite+aiosqlite:///~/registry.db")
+    home = os.path.expanduser("~")
+    assert str(engine.url) == f"sqlite+aiosqlite:///{home}/registry.db"
     await engine.dispose()
 
 @pytest.mark.asyncio
@@ -38,16 +47,16 @@ async def test_init_db_and_session_factory():
 
 @pytest.mark.asyncio
 async def test_get_db_session_dependency():
-    # Since we can't easily mock the global engine for the dependency in a simple way here,
-    # we just ensure the generator yields an AsyncSession
     os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
     
     from open_skill_registry.server.db import session as db_session_module
-    # re-init to use memory
-    db_session_module.global_engine = get_async_engine("sqlite+aiosqlite:///:memory:")
-    db_session_module.global_session_factory = get_session_factory(db_session_module.global_engine)
     
-    await init_db(db_session_module.global_engine)
+    # Ensure starting clean
+    await close_db()
+    
+    # get_db_session will call get_async_engine() internally
+    # But since we need tables created, we call init_db with None
+    await init_db()
     
     gen = get_db_session()
     session = await anext(gen)
@@ -56,4 +65,4 @@ async def test_get_db_session_dependency():
     
     # Clean up
     await gen.aclose()
-    await db_session_module.global_engine.dispose()
+    await close_db()

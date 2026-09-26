@@ -47,8 +47,9 @@ def get_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]
 async def init_db(engine: Optional[AsyncEngine] = None) -> None:
     if engine is None:
         if global_engine is None:
-            raise ValueError("No engine provided and global_engine is not initialized.")
-        engine = global_engine
+            engine = get_async_engine()
+        else:
+            engine = global_engine
         
     async with engine.begin() as conn:
         # Create all tables (useful for embedded mode / tests)
@@ -88,3 +89,12 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
             yield session
         finally:
             await session.close()
+
+async def close_db() -> None:
+    global global_engine, global_session_factory
+    
+    if global_engine is not None:
+        await global_engine.dispose()
+        global_engine = None
+        global_session_factory = None
+

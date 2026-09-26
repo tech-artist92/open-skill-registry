@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from alembic import op
 import sqlalchemy as sa
 import sqlmodel
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 
 
 # revision identifiers, used by Alembic.
@@ -32,7 +33,7 @@ def upgrade() -> None:
     # 2. Create tables
     op.create_table(
         'namespaces',
-        sa.Column('id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False),
         sa.Column('slug', sqlmodel.sql.sqltypes.AutoString(length=64), nullable=False),
         sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -45,16 +46,16 @@ def upgrade() -> None:
 
     op.create_table(
         'skills',
-        sa.Column('id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
-        sa.Column('namespace_id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False),
+        sa.Column('namespace_id', sa.Uuid(), nullable=False),
         sa.Column('slug', sqlmodel.sql.sqltypes.AutoString(length=64), nullable=False),
         sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column('tags', sa.JSON(), nullable=True),
-        sa.Column('latest_version_id', sqlmodel.sql.sqltypes.GUID(), nullable=True),
+        sa.Column('tags', sa.JSON().with_variant(JSONB(), "postgresql"), nullable=True),
+        sa.Column('latest_version_id', sa.Uuid(), nullable=True),
         sa.Column('visibility', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('download_count', sa.BigInteger(), nullable=False),
-        sa.Column('tsv', sa.Text(), nullable=True),
+        sa.Column('tsv', sa.Text().with_variant(TSVECTOR(), "postgresql"), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(['namespace_id'], ['namespaces.id'], ),
@@ -64,8 +65,8 @@ def upgrade() -> None:
 
     op.create_table(
         'skill_versions',
-        sa.Column('id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
-        sa.Column('skill_id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False),
+        sa.Column('skill_id', sa.Uuid(), nullable=False),
         sa.Column('version', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('content_hash', sqlmodel.sql.sqltypes.AutoString(length=64), nullable=False),
         sa.Column('instructions', sa.Text(), nullable=False),
@@ -82,10 +83,19 @@ def upgrade() -> None:
         sa.UniqueConstraint('skill_id', 'version', name='uq_skill_version')
     )
 
+    op.create_foreign_key(
+        "fk_skills_latest_version_id",
+        "skills",
+        "skill_versions",
+        ["latest_version_id"],
+        ["id"],
+        use_alter=True
+    )
+
     op.create_table(
         'skill_resources',
-        sa.Column('id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
-        sa.Column('version_id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False),
+        sa.Column('version_id', sa.Uuid(), nullable=False),
         sa.Column('path', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('content_type', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('content', sa.LargeBinary(), nullable=False),
@@ -105,8 +115,8 @@ def upgrade() -> None:
 
     op.create_table(
         'skill_embeddings',
-        sa.Column('id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
-        sa.Column('version_id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False),
+        sa.Column('version_id', sa.Uuid(), nullable=False),
         sa.Column('source_field', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('embedding', vector_type, nullable=False),
         sa.Column('model_name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -117,10 +127,10 @@ def upgrade() -> None:
 
     op.create_table(
         'release_tags',
-        sa.Column('id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
-        sa.Column('skill_id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False),
+        sa.Column('skill_id', sa.Uuid(), nullable=False),
         sa.Column('tag_name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column('version_id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
+        sa.Column('version_id', sa.Uuid(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(['skill_id'], ['skills.id'], ),
         sa.ForeignKeyConstraint(['version_id'], ['skill_versions.id'], ),
@@ -130,11 +140,11 @@ def upgrade() -> None:
 
     op.create_table(
         'api_keys',
-        sa.Column('id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False),
         sa.Column('key_hash', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('key_prefix', sqlmodel.sql.sqltypes.AutoString(length=8), nullable=False),
         sa.Column('label', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column('namespace_id', sqlmodel.sql.sqltypes.GUID(), nullable=True),
+        sa.Column('namespace_id', sa.Uuid(), nullable=True),
         sa.Column('permissions', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('is_active', sa.Boolean(), nullable=False),
         sa.Column('expires_at', sa.DateTime(), nullable=True),
@@ -170,6 +180,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # 1. Drop tables
+    op.drop_constraint("fk_skills_latest_version_id", "skills", type_="foreignkey")
     op.drop_table('api_keys')
     op.drop_table('release_tags')
     op.drop_table('skill_embeddings')

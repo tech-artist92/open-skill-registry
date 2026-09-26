@@ -3,9 +3,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
-from sqlalchemy import Column, UniqueConstraint, Index
+from sqlalchemy import Column, UniqueConstraint, Index, ForeignKey
 from sqlalchemy.types import TypeDecorator, Text, JSON, BigInteger, Boolean, LargeBinary, String, DateTime
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlmodel import SQLModel, Field
+import sqlmodel.sql.sqltypes
 
 try:
     from pgvector.sqlalchemy import Vector
@@ -49,6 +51,7 @@ def get_utc_now():
 
 class Namespace(SQLModel, table=True):
     __tablename__ = "namespaces"
+    __table_args__ = {"extend_existing": True}
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     slug: str = Field(max_length=64, unique=True, index=True)
@@ -62,6 +65,7 @@ class Skill(SQLModel, table=True):
     __tablename__ = "skills"
     __table_args__ = (
         UniqueConstraint("namespace_id", "slug", name="uq_skill_namespace_slug"),
+        {"extend_existing": True}
     )
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -69,11 +73,11 @@ class Skill(SQLModel, table=True):
     slug: str = Field(max_length=64)
     name: str
     description: Optional[str] = Field(default=None)
-    tags: List[str] = Field(default=[], sa_column=Column(JSON))
-    latest_version_id: Optional[uuid.UUID] = Field(default=None)
+    tags: List[str] = Field(default_factory=list, sa_column=Column(JSON().with_variant(JSONB, "postgresql")))
+    latest_version_id: Optional[uuid.UUID] = Field(default=None, sa_column_args=[ForeignKey("skill_versions.id", use_alter=True)])
     visibility: str = Field(default="PUBLIC")
     download_count: int = Field(default=0, sa_column=Column(BigInteger))
-    tsv: Optional[str] = Field(default=None, sa_column=Column(Text))
+    tsv: Optional[str] = Field(default=None, sa_column=Column(Text().with_variant(TSVECTOR, "postgresql")))
     created_at: datetime = Field(default_factory=get_utc_now)
     updated_at: datetime = Field(default_factory=get_utc_now)
 
@@ -81,6 +85,7 @@ class SkillVersion(SQLModel, table=True):
     __tablename__ = "skill_versions"
     __table_args__ = (
         UniqueConstraint("skill_id", "version", name="uq_skill_version"),
+        {"extend_existing": True}
     )
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -88,9 +93,9 @@ class SkillVersion(SQLModel, table=True):
     version: str
     content_hash: str = Field(max_length=64)
     instructions: str = Field(sa_column=Column(Text))
-    parsed_frontmatter: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
-    manifest: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
-    compliance_snapshot: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+    parsed_frontmatter: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    manifest: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    compliance_snapshot: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     security_scan: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     safety_score: str = Field(default="SAFE")
     is_yanked: bool = Field(default=False)
@@ -101,6 +106,7 @@ class SkillResource(SQLModel, table=True):
     __tablename__ = "skill_resources"
     __table_args__ = (
         UniqueConstraint("version_id", "path", name="uq_resource_version_path"),
+        {"extend_existing": True}
     )
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -114,6 +120,7 @@ class SkillResource(SQLModel, table=True):
 
 class SkillEmbedding(SQLModel, table=True):
     __tablename__ = "skill_embeddings"
+    __table_args__ = {"extend_existing": True}
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     version_id: uuid.UUID = Field(foreign_key="skill_versions.id")
@@ -126,6 +133,7 @@ class ReleaseTag(SQLModel, table=True):
     __tablename__ = "release_tags"
     __table_args__ = (
         UniqueConstraint("skill_id", "tag_name", name="uq_release_tag_skill_tag"),
+        {"extend_existing": True}
     )
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -136,6 +144,7 @@ class ReleaseTag(SQLModel, table=True):
 
 class ApiKey(SQLModel, table=True):
     __tablename__ = "api_keys"
+    __table_args__ = {"extend_existing": True}
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     key_hash: str
