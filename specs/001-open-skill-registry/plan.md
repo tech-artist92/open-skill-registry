@@ -56,15 +56,6 @@ Both modes share the identical core engine (`SkillService`, `SearchService`, `Em
 
 ---
 
-## Coding Paradigm: LLM-Optimized Vibe Coding
-
-To maximize development velocity, maintainability, and predictability when coding with AI agents ("vibe coding"), this project enforces a **Functional and Declarative** programming paradigm:
-- **Functional Core, Imperative Shell**: Core business logic (manifest hashing, payload validation, search ranking, skill resolution, security AST scanning) is implemented strictly as pure, side-effect-free functions. Database operations, network IO, and CLI printing are pushed to thin outer layers (the imperative shell).
-- **Declarative Data Flow**: Heavy reliance on Pydantic models for declarative data validation and immutability. Classes are only used for dependency injection or Pydantic schemas, not for encapsulating complex mutating state.
-- **Test-Driven Predictability**: Pure functions make writing deterministic unit tests trivial. LLM agents must write comprehensive unit tests *before* writing the implementation. This provides a high-quality feedback loop that allows the LLM to verify its own logic reliably.
-
----
-
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
