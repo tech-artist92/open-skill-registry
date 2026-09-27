@@ -301,6 +301,10 @@ def install(
                 f"[green]Successfully installed {namespace}/{slug}@{version} "
                 f"into {display_path}[/green]"
             )
+            console.print(
+                "[dim]⭐ Star us on GitHub to support open-source AI skills: "
+                "https://github.com/tech-artist92/open-skill-registry[/dim]"
+            )
     except typer.Exit:
         raise
     except Exception as e:

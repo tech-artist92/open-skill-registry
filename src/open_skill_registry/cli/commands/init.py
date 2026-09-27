@@ -50,3 +50,4 @@ def init_config(
     target_path.write_text(config_content)
     
     console.print(f"[green]Success![/green] Configuration written to {target_path}")
+    console.print("[dim]⭐ If you find Open Skill Registry useful, consider starring us on GitHub: https://github.com/tech-artist92/open-skill-registry[/dim]")
