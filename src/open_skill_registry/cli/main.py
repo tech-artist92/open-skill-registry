@@ -9,6 +9,7 @@ from open_skill_registry.cli.commands import (
     install,
     list_cmd,
     login,
+    mcp,
     namespace,
     pull,
     push,
@@ -51,6 +52,10 @@ app.command(name="list", help="List skills in the remote registry or locally ins
 app.command(name="import", help="Import skills directly from a remote Git repository")(
     import_cmd.import_command
 )
+app.command(
+    name="mcp",
+    help="Start a Model Context Protocol (MCP) server over standard I/O (SEP-2640)",
+)(mcp.mcp_command)
 
 
 def version_callback(value: bool):

@@ -12,6 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from open_skill_registry.config import RegistryConfig
 from open_skill_registry.registry.storage.factory import get_storage
 from open_skill_registry.server.db.session import close_db, get_async_engine, init_db
+from open_skill_registry.server.mcp import sse_router
 from open_skill_registry.server.routes import auth, health, namespaces, skills
 from open_skill_registry.server.services.cache_service import CacheService
 
@@ -93,6 +94,8 @@ def create_app(config: RegistryConfig | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(namespaces.router)
     app.include_router(skills.router)
+    app.include_router(sse_router, prefix="/mcp")
+    app.include_router(sse_router, prefix="/api/v1/mcp")
 
     static_dir = Path(__file__).parent / "static"
     if static_dir.exists():
