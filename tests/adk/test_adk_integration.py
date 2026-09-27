@@ -293,3 +293,29 @@ async def test_skill_get_resource_async(mock_sync_registry):
     # Actually call get_resource asynchronously
     res = await skill.get_resource("script.py")
     assert res == b"print('hello')"
+
+
+def test_search_skills_with_scope_or_namespace():
+    received_kwargs = {}
+
+    class MockScopedRegistry:
+        def search(self, query, limit=10, namespace=None):
+            received_kwargs["query"] = query
+            received_kwargs["limit"] = limit
+            received_kwargs["namespace"] = namespace
+            return [{"name": f"{namespace}/skill-1", "description": "Scoped skill"}]
+
+    reg = OpenSkillRegistry(registry=MockScopedRegistry())
+
+    # 1. Via namespace keyword
+    res = reg.search_skills("analytics", namespace="finance", limit=5)
+    assert len(res) == 1
+    assert received_kwargs["query"] == "analytics"
+    assert received_kwargs["namespace"] == "finance"
+    assert received_kwargs["limit"] == 5
+
+    # 2. Via scope keyword (alias)
+    res2 = reg.search_skills("analytics", scope="security")
+    assert len(res2) == 1
+    assert received_kwargs["namespace"] == "security"
+
