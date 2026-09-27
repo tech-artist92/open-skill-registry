@@ -14,6 +14,7 @@ console = Console()
 def scan(
     ctx: typer.Context,
     path: str = typer.Argument(..., help="Path to directory, zip file, or skill package to scan"),
+    format: str | None = typer.Option(None, "--format", "-f", help="Output format (text | json)"),
 ):
     """Scan a skill package for security vulnerabilities, secrets, and prompt injections."""
     target_path = Path(path)
@@ -27,7 +28,7 @@ def scan(
         console.print(f"[red]Scan failed: {e}[/red]")
         raise typer.Exit(code=1) from e
 
-    format_opt = (ctx.obj or {}).get("format", "text") if ctx else "text"
+    format_opt = format or ((ctx.obj or {}).get("format") if ctx else None) or "text"
     if format_opt == "json":
         typer.echo(json.dumps(result.to_dict(), indent=2))
         if not result.passed:

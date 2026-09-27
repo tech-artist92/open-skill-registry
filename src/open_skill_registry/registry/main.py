@@ -156,13 +156,15 @@ class AsyncSkillRegistry:
         safety_score = "SAFE"
         security_scan_data = None
         has_security = hasattr(self.config, "security") and self.config.security
-        if has_security and self.config.security.scan_on_push:
+        scan_on_push = self.config.security.scan_on_push if has_security else True
+        block_critical = self.config.security.block_critical if has_security else True
+        if scan_on_push:
             from open_skill_registry.registry.security.scanner import scan_skill_package
 
             scan_res = scan_skill_package(files)
             safety_score = scan_res.safety_score
             security_scan_data = scan_res.to_dict()
-            if self.config.security.block_critical and safety_score == "CRITICAL":
+            if block_critical and safety_score == "CRITICAL":
                 msg = (
                     scan_res.findings[0].message
                     if scan_res.findings

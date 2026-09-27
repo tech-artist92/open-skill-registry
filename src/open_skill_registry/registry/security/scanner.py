@@ -51,7 +51,7 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         re.compile(
-            r"\bdisregard\s+(?:all\s+)?previous\s+(?:instructions|prompts|commands)?\b",
+            r"\bdisregard\s+(?:all\s+)?previous\s+(?:instructions|prompts|commands)\b",
             re.IGNORECASE,
         ),
         "Prompt injection detected: disregard previous instructions",
@@ -117,7 +117,7 @@ SHELL_RULES = [
     ),
     (
         "shell-reverse-shell",
-        re.compile(r"\b(?:nc(?:\.traditional)?\s+-[a-zA-Z]*e\s+|/dev/tcp/\d+/\d+)", re.IGNORECASE),
+        re.compile(r"\b(?:nc(?:\.traditional)?\s+-[a-zA-Z]*e\s+|/dev/tcp/[^/]+/\d+)", re.IGNORECASE),
         Severity.CRITICAL,
         "Dangerous shell command: reverse shell execution",
         True,  # Check in all files
@@ -272,6 +272,7 @@ def scan_skill_package(files: dict[str, bytes]) -> SecurityScanResult:
         for line_idx, line in enumerate(lines, start=1):
             for rule_id, regex, severity, msg in SECRET_RULES:
                 if regex.search(line):
+                    redacted = regex.sub("[REDACTED_SECRET]", line)
                     findings.append(
                         ScanFinding(
                             rule_id=rule_id,
@@ -279,7 +280,7 @@ def scan_skill_package(files: dict[str, bytes]) -> SecurityScanResult:
                             message=msg,
                             file_path=path,
                             line_number=line_idx,
-                            snippet=line.strip()[:100],
+                            snippet=redacted.strip()[:100],
                         )
                     )
 
@@ -305,14 +306,14 @@ def scan_skill_package(files: dict[str, bytes]) -> SecurityScanResult:
                 visitor = _PythonSecurityVisitor(file_path=path)
                 visitor.visit(tree)
                 findings.extend(visitor.findings)
-            except SyntaxError as e:
+            except (SyntaxError, ValueError) as e:
                 findings.append(
                     ScanFinding(
                         rule_id="ast-syntax-error",
                         severity=Severity.WARN,
-                        message=f"Python syntax error: {e.msg}",
+                        message=f"Python syntax/parse error: {e}",
                         file_path=path,
-                        line_number=e.lineno or 1,
+                        line_number=getattr(e, "lineno", 1) or 1,
                     )
                 )
             except UnicodeDecodeError as e:
