@@ -92,8 +92,8 @@ async def mcp_sse_endpoint(
         except (asyncio.CancelledError, GeneratorExit):
             pass
         finally:
-            if is_new and max_events is None and timeout is None:
-                sessions.pop(session_id, None)
+            sessions.pop(session_id, None)
+            _sessions.pop(session_id, None)
 
     return StreamingResponse(
         event_generator(),

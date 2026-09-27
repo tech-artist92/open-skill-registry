@@ -5,7 +5,7 @@ Zero external dependencies: uses standard Pydantic models.
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # Standard JSON-RPC 2.0 Error Codes
 PARSE_ERROR = -32700
@@ -29,92 +29,77 @@ class MCPError(Exception):
         self.data = data
 
 
-class JSONRPCError(BaseModel):
+class MCPProtocolModel(BaseModel):
+    """Base class for frozen MCP protocol models supporting dict-like lookup."""
+
+    model_config = ConfigDict(frozen=True)
+
+    def __getitem__(self, item: str) -> Any:
+        try:
+            return getattr(self, item)
+        except AttributeError:
+            raise KeyError(item) from None
+
+
+class JSONRPCError(MCPProtocolModel):
     code: int
     message: str
     data: Any | None = None
 
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
-
-class JSONRPCRequest(BaseModel):
+class JSONRPCRequest(MCPProtocolModel):
     jsonrpc: Literal["2.0"] = "2.0"
     id: int | str | None = None
     method: str
     params: dict[str, Any] | list[Any] | None = None
 
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
-
-class JSONRPCResponse(BaseModel):
+class JSONRPCResponse(MCPProtocolModel):
     jsonrpc: Literal["2.0"] = "2.0"
     id: int | str | None = None
     result: Any | None = None
     error: JSONRPCError | None = None
 
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
-
-class ToolContent(BaseModel):
+class ToolContent(MCPProtocolModel):
     type: str = "text"
     text: str
 
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
-
-class ToolCallResult(BaseModel):
+class ToolCallResult(MCPProtocolModel):
     content: list[ToolContent] = Field(default_factory=list)
     isError: bool = False
 
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
-
-class ToolDefinition(BaseModel):
+class ToolDefinition(MCPProtocolModel):
     name: str
     description: str
     inputSchema: dict[str, Any] = Field(default_factory=dict)
 
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
-
-class ResourceDefinition(BaseModel):
+class ResourceDefinition(MCPProtocolModel):
     uri: str
     name: str
     description: str | None = None
     mimeType: str | None = None
 
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
-
-class ResourceContent(BaseModel):
+class ResourceContent(MCPProtocolModel):
     uri: str
     mimeType: str | None = None
     text: str | None = None
     blob: str | None = None
 
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
-
-class SkillSummaryItem(BaseModel):
+class SkillSummaryItem(MCPProtocolModel):
     namespace: str
     slug: str
     name: str
     description: str | None = None
     version: str
 
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
-
-class SkillGetResult(BaseModel):
+class SkillGetResult(MCPProtocolModel):
     namespace: str
     slug: str
     name: str
@@ -123,6 +108,3 @@ class SkillGetResult(BaseModel):
     instructions: str
     manifest: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
-
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)

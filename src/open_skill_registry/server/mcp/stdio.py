@@ -4,6 +4,7 @@ Processes line-delimited JSON-RPC 2.0 messages from standard input (or any strea
 and outputs responses to standard output.
 """
 
+import asyncio
 import inspect
 import json
 import logging
@@ -34,11 +35,16 @@ async def run_stdio_server(
 
     while True:
         try:
-            line_or_coro = reader.readline()
-            if inspect.isawaitable(line_or_coro):
-                line = await line_or_coro
+            if inspect.iscoroutinefunction(getattr(reader, "readline", None)):
+                line = await reader.readline()
+            elif reader is sys.stdin:
+                line = await asyncio.to_thread(sys.stdin.readline)
             else:
-                line = line_or_coro
+                line_or_coro = reader.readline()
+                if inspect.isawaitable(line_or_coro):
+                    line = await line_or_coro
+                else:
+                    line = line_or_coro
 
             if not line:
                 # EOF reached

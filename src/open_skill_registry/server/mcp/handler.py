@@ -42,7 +42,7 @@ from open_skill_registry.server.mcp.protocol import (
 
 logger = logging.getLogger(__name__)
 
-VERSION_REGEX = re.compile(r"^(v?\d+(\.\d+)*.*|latest)$", re.IGNORECASE)
+VERSION_REGEX = re.compile(r"^v?\d+(\.\d+)*(-[a-zA-Z0-9.\-_]+)?$|^latest$", re.IGNORECASE)
 
 
 def parse_skill_uri(uri: str) -> tuple[str, str, str | None, str]:
@@ -695,6 +695,9 @@ class MCPHandler:
             if not ver and not detail:
                 raise ValueError(f"Skill {namespace}/{slug} not found")
 
+            if version and version != "latest" and not ver:
+                raise ValueError(f"Skill '{namespace}/{slug}' version '{version}' not found")
+
             frontmatter = (ver.parsed_frontmatter if ver else {}) or {}
             name = (detail.name if detail else None) or frontmatter.get("name") or slug
             description = (
@@ -731,16 +734,68 @@ class MCPHandler:
                     res = await res
                 if not res:
                     raise ValueError(f"Skill {namespace}/{slug} not found")
+
+                target_version = version or (
+                    res.get("latest_version")
+                    if isinstance(res, dict)
+                    else getattr(res, "latest_version", "1.0.0")
+                )
+
+                manifest = (
+                    res.get("manifest")
+                    if isinstance(res, dict)
+                    else getattr(res, "manifest", None)
+                )
+                metadata = (
+                    (res.get("metadata") or res.get("frontmatter"))
+                    if isinstance(res, dict)
+                    else getattr(res, "metadata", getattr(res, "frontmatter", None))
+                )
+
+                get_ver_fn = getattr(self.registry, "get_version", None)
+                if get_ver_fn and (not manifest or (version and version != "latest")):
+                    try:
+                        ver_res = get_ver_fn(namespace, slug, target_version)
+                        if inspect.isawaitable(ver_res):
+                            ver_res = await ver_res
+                        if ver_res:
+                            if isinstance(ver_res, dict):
+                                manifest = ver_res.get("manifest") or manifest
+                                metadata = (
+                                    ver_res.get("frontmatter")
+                                    or ver_res.get("metadata")
+                                    or metadata
+                                )
+                            else:
+                                manifest = getattr(ver_res, "manifest", manifest)
+                                metadata = getattr(
+                                    ver_res,
+                                    "frontmatter",
+                                    getattr(ver_res, "metadata", metadata),
+                                )
+                        elif version and version != "latest":
+                            raise ValueError(
+                                f"Skill '{namespace}/{slug}' version '{version}' not found"
+                            )
+                    except ValueError:
+                        raise
+                    except Exception as e:
+                        if version and version != "latest":
+                            raise ValueError(
+                                f"Skill '{namespace}/{slug}' version '{version}' not found"
+                            ) from e
+
                 instructions = ""
                 inst_fn = getattr(self.registry, "get_instructions", None)
                 if inst_fn:
                     try:
-                        inst = inst_fn(namespace, slug, version or "latest")
+                        inst = inst_fn(namespace, slug, target_version or "latest")
                         if inspect.isawaitable(inst):
                             inst = await inst
                         instructions = inst
                     except Exception:
                         pass
+
                 return {
                     "namespace": (res.get("namespace") if isinstance(res, dict) else res.namespace),
                     "slug": res.get("slug") if isinstance(res, dict) else res.slug,
@@ -748,7 +803,7 @@ class MCPHandler:
                     "description": (
                         res.get("description") if isinstance(res, dict) else res.description
                     ),
-                    "version": version
+                    "version": target_version
                     or (
                         res.get("latest_version")
                         if isinstance(res, dict)
@@ -760,8 +815,8 @@ class MCPHandler:
                         if isinstance(res, dict)
                         else getattr(res, "instructions", "")
                     ),
-                    "manifest": {},
-                    "metadata": {},
+                    "manifest": manifest or {},
+                    "metadata": metadata or {},
                 }
 
         raise ValueError(f"Skill {namespace}/{slug} not found")

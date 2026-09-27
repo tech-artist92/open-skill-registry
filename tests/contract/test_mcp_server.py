@@ -615,3 +615,222 @@ async def test_mcp_sse_flow(mcp_web_app):
         assert "event: message" in sse_receive.text
         assert "777" in sse_receive.text
         assert "sse-skill" in sse_receive.text
+
+
+# -----------------------------------------------------------------------------
+# 7. Reviewer Findings & Regression Tests (Fix Round 1)
+# -----------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_tools_call_get_skill_nonexistent_version(mcp_handler):
+    """Verify requesting non-existent version via tools/call get_skill returns error."""
+    request = {
+        "jsonrpc": "2.0",
+        "id": 40,
+        "method": "tools/call",
+        "params": {
+            "name": "get_skill",
+            "arguments": {"namespace": "demo", "slug": "web-scraper", "version": "99.0.0"},
+        },
+    }
+    resp = await mcp_handler.handle_request(request)
+    assert resp is not None
+    result = resp.result
+    assert result["isError"] is True
+    assert "version '99.0.0' not found" in result["content"][0]["text"].lower()
+
+
+@pytest.mark.asyncio
+async def test_skills_get_nonexistent_version(mcp_handler):
+    """Verify requesting non-existent version via skills/get returns JSON-RPC error."""
+    request = {
+        "jsonrpc": "2.0",
+        "id": 41,
+        "method": "skills/get",
+        "params": {"namespace": "demo", "slug": "web-scraper", "version": "99.0.0"},
+    }
+    resp = await mcp_handler.handle_request(request)
+    assert resp is not None
+    assert resp.error is not None
+    assert "version '99.0.0' not found" in resp.error["message"].lower()
+
+
+@pytest.mark.asyncio
+async def test_remote_client_fallback_manifest_and_metadata():
+    """Verify remote client fallback retrieves manifest and metadata via get_version."""
+
+    class MockRemoteClient:
+        async def get_skill(self, namespace, slug):
+            if namespace == "demo" and slug == "remote-skill":
+                return {
+                    "namespace": "demo",
+                    "slug": "remote-skill",
+                    "name": "Remote Skill",
+                    "description": "Remote skill description",
+                    "latest_version": "2.0.0",
+                }
+            return None
+
+        async def get_version(self, namespace, slug, version):
+            if namespace == "demo" and slug == "remote-skill" and version in ("2.0.0", "latest"):
+                return {
+                    "version": "2.0.0",
+                    "manifest": {"files": [{"path": "main.py"}, {"path": "SKILL.md"}]},
+                    "frontmatter": {"name": "Remote Skill", "tags": ["test"]},
+                }
+            return None
+
+        async def get_instructions(self, namespace, slug, version):
+            return "Instructions for remote skill"
+
+    client = MockRemoteClient()
+    handler = MCPHandler(registry=client)
+
+    # 1. Test skills/get populates manifest and metadata from get_version
+    resp = await handler.handle_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 50,
+            "method": "skills/get",
+            "params": {"namespace": "demo", "slug": "remote-skill"},
+        }
+    )
+    assert resp is not None
+    assert resp.error is None
+    data = resp.result
+    assert data["manifest"] == {"files": [{"path": "main.py"}, {"path": "SKILL.md"}]}
+    assert data["metadata"] == {"name": "Remote Skill", "tags": ["test"]}
+    assert data["instructions"] == "Instructions for remote skill"
+
+    # 2. Test resources/list lists resources discovered via remote manifest
+    res_list = await handler.handle_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 51,
+            "method": "resources/list",
+            "params": {"namespace": "demo", "slug": "remote-skill"},
+        }
+    )
+    assert res_list is not None
+    assert res_list.error is None
+    resources = res_list.result["resources"]
+    uris = [r["uri"] for r in resources]
+    assert "skill://demo/remote-skill/2.0.0/main.py" in uris
+    assert "skill://demo/remote-skill/2.0.0/SKILL.md" in uris
+
+    # 3. Test non-existent version via remote client returns error
+    not_found = await handler.handle_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 52,
+            "method": "skills/get",
+            "params": {"namespace": "demo", "slug": "remote-skill", "version": "99.0.0"},
+        }
+    )
+    assert not_found is not None
+    assert not_found.error is not None
+    assert "not found" in not_found.error["message"].lower()
+
+
+def test_protocol_model_immutability_and_keyerror():
+    """Verify MCP protocol models are frozen (immutable) and raise KeyError on missing keys."""
+    from pydantic import ValidationError
+    from open_skill_registry.server.mcp.protocol import (
+        JSONRPCError,
+        JSONRPCRequest,
+        JSONRPCResponse,
+        ToolCallResult,
+        ToolContent,
+    )
+
+    err = JSONRPCError(code=-32600, message="Invalid request")
+    assert err["code"] == -32600
+    with pytest.raises(KeyError):
+        _ = err["nonexistent"]
+
+    with pytest.raises(ValidationError):
+        err.code = -32601
+
+    req = JSONRPCRequest(method="ping")
+    assert req["method"] == "ping"
+    with pytest.raises(KeyError):
+        _ = req["nonexistent"]
+    with pytest.raises(ValidationError):
+        req.method = "other"
+
+    resp = JSONRPCResponse(id=1, result={"ok": True})
+    assert resp["id"] == 1
+    with pytest.raises(KeyError):
+        _ = resp["unknown_field"]
+    with pytest.raises(ValidationError):
+        resp.id = 2
+
+    tool_res = ToolCallResult(content=[ToolContent(text="done")], isError=False)
+    assert tool_res["isError"] is False
+    with pytest.raises(KeyError):
+        _ = tool_res["invalid_prop"]
+    with pytest.raises(ValidationError):
+        tool_res.isError = True
+
+
+def test_version_regex_validation():
+    """Verify strict semver / version pattern matching."""
+    from open_skill_registry.server.mcp.handler import VERSION_REGEX
+
+    valid_versions = [
+        "1",
+        "1.0",
+        "1.0.0",
+        "v1.0.0",
+        "1.2.3.4",
+        "1.0.0-alpha.1",
+        "1.0.0-beta-2",
+        "1.0.0-rc1",
+        "latest",
+        "Latest",
+    ]
+    for v in valid_versions:
+        assert VERSION_REGEX.match(v) is not None, f"Expected {v} to match VERSION_REGEX"
+
+    invalid_versions = [
+        "scraper.py",
+        "main.ts",
+        "path/to/file",
+        "invalid_version",
+        "readme.md",
+    ]
+    for iv in invalid_versions:
+        assert VERSION_REGEX.match(iv) is None, f"Expected {iv} NOT to match VERSION_REGEX"
+
+
+@pytest.mark.asyncio
+async def test_sse_session_cleanup_on_stream_end(mcp_web_app):
+    """Verify session is unconditionally popped from _sessions when SSE stream ends."""
+    from open_skill_registry.server.mcp.sse import _sessions
+
+    transport = ASGITransport(app=mcp_web_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Connect with max_events=1 so stream reaches end of events in while loop
+        sse_resp = await client.get("/mcp/sse?max_events=1")
+        session_id = None
+        for line in sse_resp.text.splitlines():
+            if "sessionId=" in line:
+                session_id = line.split("sessionId=")[1].strip()
+                break
+        assert session_id is not None
+
+        # Post message to session
+        msg_resp = await client.post(
+            f"/mcp/messages?sessionId={session_id}",
+            json={"jsonrpc": "2.0", "id": 1, "method": "ping"},
+        )
+        assert msg_resp.status_code == 202
+
+        # Stream terminates when max_events=1 event is received
+        recv_resp = await client.get(f"/mcp/sse?sessionId={session_id}&max_events=1")
+        assert recv_resp.status_code == 200
+
+        # Verify session is cleaned up
+        assert session_id not in _sessions
+        assert session_id not in mcp_web_app.state.mcp_sessions
