@@ -116,7 +116,6 @@ class Skill(_ADKSkill if _ADKSkill else object):
         return as_crewai_tool(self, registry=reg)
 
 
-
 class OpenSkillRegistry:
     """Adapter for integrating open-skill-registry with Google ADK.
 
@@ -155,10 +154,11 @@ class OpenSkillRegistry:
             self.registry = registry
             import inspect
 
-            if hasattr(registry, "search_skills") and inspect.iscoroutinefunction(
-                registry.search_skills
-            ) or hasattr(registry, "search") and inspect.iscoroutinefunction(
-                registry.search
+            if (
+                hasattr(registry, "search_skills")
+                and inspect.iscoroutinefunction(registry.search_skills)
+                or hasattr(registry, "search")
+                and inspect.iscoroutinefunction(registry.search)
             ):
                 self.is_async = True
         else:
@@ -243,11 +243,7 @@ class OpenSkillRegistry:
                     Frontmatter(
                         name=name,
                         description=description,
-                        tags=tags
-                        if isinstance(tags, list)
-                        else list(tags)
-                        if tags
-                        else [],
+                        tags=tags if isinstance(tags, list) else list(tags) if tags else [],
                     )
                 )
             return AwaitableList(frontmatters)
@@ -298,11 +294,7 @@ class OpenSkillRegistry:
             if data is None:
                 raise SkillNotFoundError(norm_name)
 
-            name_val = (
-                data.get("name", "")
-                if isinstance(data, dict)
-                else getattr(data, "name", "")
-            )
+            name_val = data.get("name", "") if isinstance(data, dict) else getattr(data, "name", "")
             desc_val = (
                 data.get("description", "")
                 if isinstance(data, dict)
@@ -328,20 +320,31 @@ class OpenSkillRegistry:
                 ns, slug = norm_name.split("/", 1)
                 with contextlib.suppress(Exception):
                     inst_val = (
-                        self._run(
-                            self.registry.get_instructions(
-                                ns, slug, tag or "latest"
-                            )
-                        )
-                        or ""
+                        self._run(self.registry.get_instructions(ns, slug, tag or "latest")) or ""
                     )
+
+            resolved_version = tag
+            if (
+                (not resolved_version or resolved_version == "latest")
+                and hasattr(data, "latest_version")
+                and data.latest_version
+            ):
+                resolved_version = data.latest_version
+            elif (
+                (not resolved_version or resolved_version == "latest")
+                and isinstance(data, dict)
+                and data.get("latest_version")
+            ):
+                resolved_version = data["latest_version"]
+            if not resolved_version:
+                resolved_version = "latest"
 
             return Skill(
                 name=name_val,
                 description=desc_val,
                 instructions=inst_val,
                 metadata=meta_val,
-                version=tag,
+                version=resolved_version,
                 _registry=self,
             )
         except (ClientNotFoundError, BaseNotFoundError) as e:
@@ -392,35 +395,21 @@ class OpenSkillRegistry:
             ver = self.default_tag
         try:
             if hasattr(self.registry, "get_skill_resource"):
-                raw = self._run(
-                    self.registry.get_skill_resource(
-                        norm_name, res_path, version=ver
-                    )
-                )
+                raw = self._run(self.registry.get_skill_resource(norm_name, res_path, version=ver))
             elif hasattr(self.registry, "get_file"):
                 ns, slug = norm_name.split("/", 1)
-                raw = self._run(
-                    self.registry.get_file(ns, slug, ver, res_path)
-                )
+                raw = self._run(self.registry.get_file(ns, slug, ver, res_path))
             elif hasattr(self.registry, "download_resources"):
                 ns, slug = norm_name.split("/", 1)
-                resources = self._run(
-                    self.registry.download_resources(ns, slug, ver)
-                )
+                resources = self._run(self.registry.download_resources(ns, slug, ver))
                 if res_path not in resources:
-                    raise SkillNotFoundError(
-                        f"Resource {res_path} not found in skill {norm_name}"
-                    )
+                    raise SkillNotFoundError(f"Resource {res_path} not found in skill {norm_name}")
                 raw = resources[res_path]
             else:
                 raise SkillNotFoundError(f"Cannot get resource {res_path}")
-            return AwaitableBytes(
-                raw if isinstance(raw, (bytes, bytearray)) else bytes(raw)
-            )
-        except (ClientNotFoundError, BaseNotFoundError) as e:
-            raise SkillNotFoundError(
-                f"Resource {res_path} not found in skill {norm_name}"
-            ) from e
+            return AwaitableBytes(raw if isinstance(raw, (bytes, bytearray)) else bytes(raw))
+        except (ClientNotFoundError, BaseNotFoundError, ValueError) as e:
+            raise SkillNotFoundError(f"Resource {res_path} not found in skill {norm_name}") from e
         except Exception as e:
             if type(e).__name__ in ("SkillNotFoundError", "NotFoundError"):
                 raise SkillNotFoundError(

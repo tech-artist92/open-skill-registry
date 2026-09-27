@@ -28,6 +28,7 @@ class SearchResultList(list):
     def __await__(self):
         async def _coro():
             return self
+
         return _coro().__await__()
 
 
@@ -37,6 +38,7 @@ class _AwaitableNone:
     def __await__(self):
         async def _coro():
             return None
+
         return _coro().__await__()
 
     def __repr__(self):
@@ -114,14 +116,9 @@ class AsyncSkillRegistry:
                 for file_path in p.rglob("*"):
                     if file_path.is_file():
                         rel_parts = file_path.relative_to(p).parts
-                        if any(
-                            part.startswith(".") or part == "__pycache__"
-                            for part in rel_parts
-                        ):
+                        if any(part.startswith(".") or part == "__pycache__" for part in rel_parts):
                             continue
-                        files[file_path.relative_to(p).as_posix()] = (
-                            file_path.read_bytes()
-                        )
+                        files[file_path.relative_to(p).as_posix()] = file_path.read_bytes()
                 if not slug:
                     skill_md = files.get("SKILL.md")
                     if skill_md:
@@ -201,14 +198,12 @@ class AsyncSkillRegistry:
     async def get(self, namespace: str, slug: str) -> SkillDetail | None:
         return await self.storage.get_skill(namespace, slug)
 
-    async def get_version(
-        self, namespace: str, slug: str, version: str
-    ) -> SkillVersion | None:
+    async def get_version(self, namespace: str, slug: str, version: str) -> SkillVersion | None:
+        if version == "latest":
+            return await self.resolve(namespace, slug, "latest")
         return await self.storage.get_skill_version(namespace, slug, version)
 
-    async def download_resources(
-        self, namespace: str, slug: str, version: str
-    ) -> dict[str, bytes]:
+    async def download_resources(self, namespace: str, slug: str, version: str) -> dict[str, bytes]:
         ver = await self.get_version(namespace, slug, version)
         if not ver:
             raise ValueError(f"Version {version} not found")
@@ -223,9 +218,7 @@ class AsyncSkillRegistry:
         results = await self.storage.search_skills(query, query_vector, limit, namespace)
         return SearchResultList(results)
 
-    async def resolve(
-        self, namespace: str, slug: str, constraint: str
-    ) -> SkillVersion | None:
+    async def resolve(self, namespace: str, slug: str, constraint: str) -> SkillVersion | None:
         return await self.storage.resolve_version(namespace, slug, constraint)
 
     async def tag(self, namespace: str, slug: str, version: str, tag: str) -> None:
@@ -305,26 +298,16 @@ class SkillRegistry:
     def get(self, namespace: str, slug: str) -> SkillDetail | None:
         return _run_async(self._async_registry.get(namespace, slug))
 
-    def get_version(
-        self, namespace: str, slug: str, version: str
-    ) -> SkillVersion | None:
+    def get_version(self, namespace: str, slug: str, version: str) -> SkillVersion | None:
         return _run_async(self._async_registry.get_version(namespace, slug, version))
 
-    def download_resources(
-        self, namespace: str, slug: str, version: str
-    ) -> dict[str, bytes]:
-        return _run_async(
-            self._async_registry.download_resources(namespace, slug, version)
-        )
+    def download_resources(self, namespace: str, slug: str, version: str) -> dict[str, bytes]:
+        return _run_async(self._async_registry.download_resources(namespace, slug, version))
 
-    def search(
-        self, query: str, limit: int = 10, namespace: str | None = None
-    ) -> SearchResultList:
+    def search(self, query: str, limit: int = 10, namespace: str | None = None) -> SearchResultList:
         return _run_async(self._async_registry.search(query, limit, namespace))
 
-    def resolve(
-        self, namespace: str, slug: str, constraint: str
-    ) -> SkillVersion | None:
+    def resolve(self, namespace: str, slug: str, constraint: str) -> SkillVersion | None:
         return _run_async(self._async_registry.resolve(namespace, slug, constraint))
 
     def tag(self, namespace: str, slug: str, version: str, tag: str) -> None:

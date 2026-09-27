@@ -14,13 +14,23 @@ def extract_skill_info(skill: Any) -> tuple[str, str, str, dict[str, Any]]:
     dictionaries, and duck-typed objects.
     """
     if isinstance(skill, dict):
-        name = skill.get("name") or skill.get("slug") or "skill"
+        ns = skill.get("namespace")
+        slug = skill.get("slug")
+        if ns and slug:
+            name = f"{ns}/{slug}"
+        else:
+            name = skill.get("name") or skill.get("slug") or "skill"
         raw_desc = skill.get("description")
         description = raw_desc if raw_desc else f"Execute {name} skill."
         instructions = skill.get("instructions") or ""
         metadata = skill.get("metadata") or {}
     else:
-        name = getattr(skill, "name", None) or getattr(skill, "slug", None) or "skill"
+        ns = getattr(skill, "namespace", None)
+        slug = getattr(skill, "slug", None)
+        if ns and slug:
+            name = f"{ns}/{slug}"
+        else:
+            name = getattr(skill, "name", None) or getattr(skill, "slug", None) or "skill"
         raw_desc = getattr(skill, "description", None)
         description = raw_desc if raw_desc else f"Execute {name} skill."
         instructions = getattr(skill, "instructions", "") or ""
@@ -42,9 +52,7 @@ def extract_skill_info(skill: Any) -> tuple[str, str, str, dict[str, Any]]:
         else:
             metadata = {}
 
-
     return str(name), str(description), str(instructions), metadata
-
 
 
 def execute_skill(skill: Any, *args: Any, **kwargs: Any) -> Any:
@@ -99,10 +107,10 @@ def execute_skill(skill: Any, *args: Any, **kwargs: Any) -> Any:
             formatter = string.Formatter()
             fields = [fname for _, fname, _, _ in formatter.parse(instructions) if fname]
             if fields:
+
                 class SafeDict(dict[str, Any]):
                     def __missing__(self, key: str) -> str:
                         return f"{{{key}}}"
-
 
                 return instructions.format_map(SafeDict(**kwargs))
         except Exception as e:
