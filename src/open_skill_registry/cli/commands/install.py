@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -20,8 +21,22 @@ def parse_skill_name(skill: str) -> tuple[str, str]:
     """Parse a skill identifier into (namespace, slug). Defaults namespace to 'public'."""
     if "/" in skill:
         ns, slug = skill.split("/", 1)
-        return ns, slug
-    return "public", skill
+    else:
+        ns, slug = "public", skill
+
+    if not re.match(r"^[a-zA-Z0-9_\-]+$", slug):
+        console.print(
+            f"[red]Error: Invalid skill slug '{slug}'. "
+            "Must be alphanumeric with hyphens or underscores.[/red]"
+        )
+        raise typer.Exit(1)
+    if not re.match(r"^[a-zA-Z0-9_\-]+$", ns):
+        console.print(
+            f"[red]Error: Invalid namespace '{ns}'. "
+            "Must be alphanumeric with hyphens or underscores.[/red]"
+        )
+        raise typer.Exit(1)
+    return ns, slug
 
 
 def detect_workspace_target(workspace: Path | None = None) -> str:
@@ -101,10 +116,39 @@ def get_manifest_path(workspace: Path | None = None, is_global: bool = False) ->
     return workspace / ".osr-installed.json"
 
 
-def load_installed_manifest(workspace: Path | None = None) -> dict[str, Any]:
-    """Load installed skills manifest from workspace (.osr-installed.json) or global fallback."""
+def load_installed_manifest(
+    workspace: Path | None = None, is_global: bool | None = None
+) -> dict[str, Any]:
+    """Load installed skills manifest.
+
+    If is_global is True: loads from global manifest (~/.osr/installed.json).
+    If is_global is False: loads from workspace manifest (<workspace>/.osr-installed.json).
+    If is_global is None: loads workspace manifest if it exists, otherwise global manifest.
+    """
     if workspace is None:
         workspace = Path.cwd()
+
+    if is_global is True:
+        global_manifest = Path.home() / ".osr" / "installed.json"
+        if global_manifest.exists():
+            try:
+                data = json.loads(global_manifest.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    return data
+            except Exception:
+                pass
+        return {}
+
+    if is_global is False:
+        ws_manifest = workspace / ".osr-installed.json"
+        if ws_manifest.exists():
+            try:
+                data = json.loads(ws_manifest.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    return data
+            except Exception:
+                pass
+        return {}
 
     ws_manifest = workspace / ".osr-installed.json"
     if ws_manifest.exists():
@@ -157,6 +201,17 @@ def install_skill_files(
 
     for entry in entries:
         path = entry.get("path")
+        if not path or ".." in path or path.startswith("/") or path.startswith("\\"):
+            console.print(
+                f"[red]Error: Path traversal attempt detected in package file '{path}'[/red]"
+            )
+            raise typer.Exit(1)
+
+        out_file = (target_dir / path).resolve()
+        if not out_file.is_relative_to(target_dir.resolve()):
+            console.print(f"[red]Error: File path '{path}' escapes target directory[/red]")
+            raise typer.Exit(1)
+
         expected_hash = entry.get("hash")
 
         content = client.get_file(namespace, slug, version, path)
@@ -169,7 +224,6 @@ def install_skill_files(
                 )
                 raise typer.Exit(1)
 
-        out_file = target_dir / path
         out_file.parent.mkdir(parents=True, exist_ok=True)
         out_file.write_bytes(content)
 
@@ -229,7 +283,7 @@ def install(
                 client, namespace, slug, version, target_dir
             )
 
-            manifest_data = load_installed_manifest(workspace)
+            manifest_data = load_installed_manifest(workspace, is_global=is_global)
             manifest_key = f"{namespace}/{slug}"
             manifest_data[manifest_key] = {
                 "namespace": namespace,
@@ -239,6 +293,7 @@ def install(
                 "path": str(display_path),
                 "content_hash": content_hash,
                 "installed_at": datetime.now(UTC).isoformat(),
+                "is_global": is_global,
             }
             save_installed_manifest(manifest_data, workspace, is_global=is_global)
 

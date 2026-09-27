@@ -74,11 +74,7 @@ def update(
     try:
         with SkillRegistryClient(**client_kwargs) as client:
             if slug is not None:
-                matched_key = find_installed_skill_key(manifest, slug)
-                if not matched_key:
-                    console.print(f"[red]Error: Skill '{slug}' is not installed.[/red]")
-                    raise typer.Exit(1)
-
+                assert matched_key is not None
                 item = manifest[matched_key]
                 ns = item.get("namespace", "public")
                 s = item.get("slug", slug)
@@ -164,6 +160,7 @@ def update(
                     console.print("[red]Failed updates:[/red]")
                     for skill_name, err in failed:
                         console.print(f"  • {skill_name}: {err}")
+                    raise typer.Exit(1)
     except typer.Exit:
         raise
     except Exception as e:

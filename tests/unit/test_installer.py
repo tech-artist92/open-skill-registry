@@ -7,7 +7,9 @@ from typer.testing import CliRunner
 
 from open_skill_registry.cli.commands.install import (
     detect_workspace_target,
+    install_skill_files,
     load_installed_manifest,
+    parse_skill_name,
     resolve_target_dir,
     save_installed_manifest,
 )
@@ -618,3 +620,181 @@ def test_cli_update_all_skills_empty(tmp_path, monkeypatch):
     result = runner.invoke(app, ["update"])
     assert result.exit_code == 0
     assert "No installed skills found" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: Path traversal, slug sanitization, and scope isolation (Reviewer Findings)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_skill_name_valid():
+    ns, slug = parse_skill_name("public/weather-lookup")
+    assert ns == "public" and slug == "weather-lookup"
+
+    ns2, slug2 = parse_skill_name("my_ns-1/custom_skill-99")
+    assert ns2 == "my_ns-1" and slug2 == "custom_skill-99"
+
+    ns3, slug3 = parse_skill_name("weather-lookup")
+    assert ns3 == "public" and slug3 == "weather-lookup"
+
+
+@pytest.mark.parametrize(
+    "invalid_name",
+    [
+        "../../evil",
+        "public/../../evil",
+        "evil;rm -rf",
+        "namespace/slug/extra",
+        "bad name/spaces",
+        "bad@name",
+    ],
+)
+def test_parse_skill_name_invalid(invalid_name):
+    import typer
+
+    with pytest.raises(typer.Exit):
+        parse_skill_name(invalid_name)
+
+
+def test_install_skill_files_path_traversal_prevention(tmp_path):
+    import typer
+
+    target_dir = tmp_path / "installed_skills" / "my-skill"
+    target_dir.mkdir(parents=True)
+
+    mock_client = MagicMock()
+    mock_client.get_version.return_value = {
+        "manifest": {
+            "entries": [
+                {"path": "../evil.py", "hash": "somehash", "size": 10},
+            ]
+        }
+    }
+
+    with pytest.raises(typer.Exit):
+        install_skill_files(mock_client, "public", "my-skill", "1.0.0", target_dir)
+
+    # Verify no file was written outside target_dir
+    assert not (tmp_path / "installed_skills" / "evil.py").exists()
+
+
+def test_install_skill_files_absolute_path_traversal_prevention(tmp_path):
+    import typer
+
+    target_dir = tmp_path / "installed_skills" / "my-skill"
+    target_dir.mkdir(parents=True)
+
+    mock_client = MagicMock()
+    mock_client.get_version.return_value = {
+        "manifest": {
+            "entries": [
+                {"path": "/tmp/evil.py", "hash": "somehash", "size": 10},
+            ]
+        }
+    }
+
+    with pytest.raises(typer.Exit):
+        install_skill_files(mock_client, "public", "my-skill", "1.0.0", target_dir)
+
+
+def test_manifest_scope_isolation(tmp_path, monkeypatch, mock_registry_client):
+    """Verify that installing into global scope does not pull in workspace manifest skills."""
+    monkeypatch.chdir(tmp_path)
+    fake_home = tmp_path / "fake_home"
+    fake_home.mkdir()
+    monkeypatch.setenv("HOME", str(fake_home))
+
+    # Workspace has a pre-existing .osr-installed.json with local-skill
+    ws_manifest = {
+        "public/workspace-skill": {
+            "namespace": "public",
+            "slug": "workspace-skill",
+            "version": "1.0.0",
+            "target": "agents",
+            "path": ".agents/skills/workspace-skill",
+            "content_hash": "wshash",
+            "installed_at": "2026-09-27T10:00:00Z",
+            "is_global": False,
+        }
+    }
+    (tmp_path / ".osr-installed.json").write_text(json.dumps(ws_manifest), encoding="utf-8")
+
+    file_content = b"# Global Skill Content"
+    file_hash = hashlib.sha256(file_content).hexdigest()
+
+    mock_registry_client.get_skill.return_value = {
+        "namespace": "public",
+        "slug": "global-skill",
+        "latest_version": "1.0.0",
+    }
+    mock_registry_client.get_version.return_value = {
+        "version": "1.0.0",
+        "manifest": {
+            "content_hash": "ghash",
+            "entries": [{"path": "SKILL.md", "hash": file_hash, "size": len(file_content)}],
+        },
+    }
+    mock_registry_client.get_file.return_value = file_content
+
+    # Target 'local' without .agents in tmp_path -> resolves to global (~/.osr/skills/...)
+    result = runner.invoke(app, ["install", "global-skill", "--target", "local"])
+    assert result.exit_code == 0
+
+    # Global manifest must ONLY contain global-skill, not workspace-skill!
+    global_manifest_path = fake_home / ".osr" / "installed.json"
+    assert global_manifest_path.exists()
+    global_data = json.loads(global_manifest_path.read_text(encoding="utf-8"))
+    assert "public/global-skill" in global_data
+    assert "public/workspace-skill" not in global_data
+
+    # Workspace manifest must remain untouched
+    ws_data = json.loads((tmp_path / ".osr-installed.json").read_text(encoding="utf-8"))
+    assert "public/workspace-skill" in ws_data
+    assert "public/global-skill" not in ws_data
+
+
+def test_cli_update_batch_failure_exits_one(tmp_path, monkeypatch, mock_registry_client):
+    """Verify that batch update exits with code 1 if any skill update fails."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".cursor").mkdir()
+
+    manifest_data = {
+        "public/skill-ok": {
+            "namespace": "public",
+            "slug": "skill-ok",
+            "version": "1.0.0",
+            "target": "cursor",
+            "path": ".cursor/skills/skill-ok",
+            "content_hash": "hash-ok",
+            "installed_at": "2026-09-27T10:00:00Z",
+        },
+        "public/skill-fail": {
+            "namespace": "public",
+            "slug": "skill-fail",
+            "version": "1.0.0",
+            "target": "cursor",
+            "path": ".cursor/skills/skill-fail",
+            "content_hash": "hash-fail",
+            "installed_at": "2026-09-27T10:00:00Z",
+        },
+    }
+    (tmp_path / ".osr-installed.json").write_text(json.dumps(manifest_data), encoding="utf-8")
+
+    def mock_get_skill(ns, slug):
+        if slug == "skill-ok":
+            return {
+                "namespace": ns,
+                "slug": slug,
+                "latest_version": "1.0.0",
+                "release_tags": {"latest": "1.0.0"},
+            }
+        else:
+            raise RuntimeError("Network error fetching skill-fail")
+
+    mock_registry_client.get_skill.side_effect = mock_get_skill
+
+    result = runner.invoke(app, ["update"])
+    assert result.exit_code == 1
+    assert "Failed updates" in result.stdout
+    assert "skill-fail" in result.stdout
+
