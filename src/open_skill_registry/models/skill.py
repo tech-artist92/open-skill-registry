@@ -58,6 +58,25 @@ class SkillDetail(SkillSummary):
             return self
         return _coro().__await__()
 
+    def as_openai_tool(self, *, registry: Any = None) -> dict[str, Any]:
+        """Convert this skill into an OpenAI tool definition."""
+        from open_skill_registry.adapters.openai import as_openai_tool
+
+        return as_openai_tool(self, registry=registry)
+
+    def as_langchain_tool(self, *, registry: Any = None) -> Any:
+        """Convert this skill into a LangChain-compatible BaseTool."""
+        from open_skill_registry.adapters.langchain import as_langchain_tool
+
+        return as_langchain_tool(self, registry=registry)
+
+    def as_crewai_tool(self, *, registry: Any = None) -> Any:
+        """Convert this skill into a CrewAI-compatible BaseTool."""
+        from open_skill_registry.adapters.crewai import as_crewai_tool
+
+        return as_crewai_tool(self, registry=registry)
+
+
 
 class ComplianceSnapshot(BaseModel):
     """Immutable digest of skill compliance and validation status."""

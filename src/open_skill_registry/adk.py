@@ -94,6 +94,28 @@ class Skill(_ADKSkill if _ADKSkill else object):
             return await res
         return res
 
+    def as_openai_tool(self, *, registry: Any = None) -> dict[str, Any]:
+        """Convert this skill into an OpenAI tool definition."""
+        from .adapters.openai import as_openai_tool
+
+        reg = registry if registry is not None else self._registry
+        return as_openai_tool(self, registry=reg)
+
+    def as_langchain_tool(self, *, registry: Any = None) -> Any:
+        """Convert this skill into a LangChain-compatible BaseTool."""
+        from .adapters.langchain import as_langchain_tool
+
+        reg = registry if registry is not None else self._registry
+        return as_langchain_tool(self, registry=reg)
+
+    def as_crewai_tool(self, *, registry: Any = None) -> Any:
+        """Convert this skill into a CrewAI-compatible BaseTool."""
+        from .adapters.crewai import as_crewai_tool
+
+        reg = registry if registry is not None else self._registry
+        return as_crewai_tool(self, registry=reg)
+
+
 
 class OpenSkillRegistry:
     """Adapter for integrating open-skill-registry with Google ADK.
