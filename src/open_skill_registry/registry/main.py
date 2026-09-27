@@ -233,6 +233,8 @@ class AsyncSkillRegistry:
     async def yank(self, namespace: str, slug: str, version: str) -> None:
         await self.storage.yank_version(namespace, slug, version)
 
+    publish_skill = publish
+
 
 def _run_async(coro: Coroutine[Any, Any, Any]) -> Any:
     try:
@@ -329,3 +331,5 @@ class SkillRegistry:
 
     def yank(self, namespace: str, slug: str, version: str) -> None:
         _run_async(self._async_registry.yank(namespace, slug, version))
+
+    publish_skill = publish

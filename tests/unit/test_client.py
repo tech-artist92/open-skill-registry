@@ -104,6 +104,13 @@ async def test_async_publish(async_client):
     assert res == {"status": "published"}
 
 @pytest.mark.asyncio
+async def test_async_publish_skill(async_client):
+    res = await async_client.publish_skill(
+        namespace="public", slug="myskill", version="1.0.0", files={"SKILL.md": b"# Test"}
+    )
+    assert res == {"status": "published"}
+
+@pytest.mark.asyncio
 async def test_async_publish_duplicate(async_client):
     with pytest.raises(DuplicateVersionError):
         await async_client.publish(file_data=b"duplicate", namespace="public", slug="myskill", version="1.0.0")
@@ -155,6 +162,12 @@ def test_sync_get_file(sync_client):
 
 def test_sync_publish(sync_client):
     res = sync_client.publish(file_data=b"good data", namespace="public", slug="myskill", version="1.0.0")
+    assert res == {"status": "published"}
+
+def test_sync_publish_skill(sync_client):
+    res = sync_client.publish_skill(
+        namespace="public", slug="myskill", version="1.0.0", files={"SKILL.md": b"# Test"}
+    )
     assert res == {"status": "published"}
 
 def test_sync_publish_bad_request(sync_client):

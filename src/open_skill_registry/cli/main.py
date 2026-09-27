@@ -3,6 +3,7 @@ from pathlib import Path
 import typer
 
 from open_skill_registry.cli.commands import (
+    import_cmd,
     info,
     init,
     install,
@@ -46,6 +47,9 @@ app.command(name="install", help="Install a skill into workspace or local agent 
 app.command(name="update", help="Update installed skills to their latest versions")(update.update)
 app.command(name="list", help="List skills in the remote registry or locally installed skills")(
     list_cmd.list_command
+)
+app.command(name="import", help="Import skills directly from a remote Git repository")(
+    import_cmd.import_command
 )
 
 

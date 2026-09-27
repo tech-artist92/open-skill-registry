@@ -1,5 +1,6 @@
 import io
 import os
+import zipfile
 from pathlib import Path
 from typing import Optional, Any, Union, Dict
 
@@ -242,6 +243,42 @@ class AsyncSkillRegistryClient:
         
         response = await self._client.post("/api/v1/skills/publish", data=data, files=files)
         return _handle_response(response)
+
+    async def publish_skill(
+        self,
+        namespace: str = "public",
+        slug: Optional[str] = None,
+        version: Optional[str] = None,
+        files: Optional[dict[str, bytes]] = None,
+        file_data: Optional[Union[bytes, io.BytesIO, str, Path]] = None,
+        visibility: Optional[str] = None,
+    ) -> Any:
+        """
+        Publish a skill version with either raw files dictionary or package file data.
+        """
+        if files is not None:
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                for name, content in files.items():
+                    zf.writestr(name, content)
+            buf.seek(0)
+            zip_name = f"{slug or 'skill'}.zip"
+            files_payload = {"file": (zip_name, buf.getvalue(), "application/zip")}
+            data = {"namespace": namespace}
+            if slug:
+                data["slug"] = slug
+            if version:
+                data["version"] = version
+            if visibility:
+                data["visibility"] = visibility
+            response = await self._client.post("/api/v1/skills/publish", data=data, files=files_payload)
+            return _handle_response(response)
+        return await self.publish(
+            file_data=file_data,  # type: ignore
+            namespace=namespace,
+            slug=slug,
+            version=version,
+        )
 
     async def create_namespace(
         self,
@@ -505,6 +542,42 @@ class SkillRegistryClient:
         
         response = self._client.post("/api/v1/skills/publish", data=data, files=files)
         return _handle_response(response)
+
+    def publish_skill(
+        self,
+        namespace: str = "public",
+        slug: Optional[str] = None,
+        version: Optional[str] = None,
+        files: Optional[dict[str, bytes]] = None,
+        file_data: Optional[Union[bytes, io.BytesIO, str, Path]] = None,
+        visibility: Optional[str] = None,
+    ) -> Any:
+        """
+        Publish a skill version with either raw files dictionary or package file data.
+        """
+        if files is not None:
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                for name, content in files.items():
+                    zf.writestr(name, content)
+            buf.seek(0)
+            zip_name = f"{slug or 'skill'}.zip"
+            files_payload = {"file": (zip_name, buf.getvalue(), "application/zip")}
+            data = {"namespace": namespace}
+            if slug:
+                data["slug"] = slug
+            if version:
+                data["version"] = version
+            if visibility:
+                data["visibility"] = visibility
+            response = self._client.post("/api/v1/skills/publish", data=data, files=files_payload)
+            return _handle_response(response)
+        return self.publish(
+            file_data=file_data,  # type: ignore
+            namespace=namespace,
+            slug=slug,
+            version=version,
+        )
 
     def create_namespace(
         self,
