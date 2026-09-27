@@ -220,10 +220,10 @@
 
 **Purpose**: Enhance registry safety by statically analyzing skill content for vulnerabilities.
 
-- [ ] T060 [P] Implement tests for AST/Regex security scanner in `tests/unit/test_security_scanner.py`
-- [ ] T061 Implement `src/open_skill_registry/registry/security/scanner.py` (AST/Regex for shell injections, prompt overrides, secrets)
-- [ ] T062 Update publish endpoint to run scan and save `safety_score`
-- [ ] T063 Implement `osr scan` CLI command
+- [x] T060 [P] Implement tests for AST/Regex security scanner in `tests/unit/test_security_scanner.py`
+- [x] T061 Implement `src/open_skill_registry/registry/security/scanner.py` (AST/Regex for shell injections, prompt overrides, secrets)
+- [x] T062 Update publish endpoint to run scan and save `safety_score`
+- [x] T063 Implement `osr scan` CLI command
 
 ---
 
