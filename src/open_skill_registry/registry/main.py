@@ -152,6 +152,24 @@ class AsyncSkillRegistry:
         else:
             instructions = content_str
 
+        # Security scan
+        safety_score = "SAFE"
+        security_scan_data = None
+        has_security = hasattr(self.config, "security") and self.config.security
+        if has_security and self.config.security.scan_on_push:
+            from open_skill_registry.registry.security.scanner import scan_skill_package
+
+            scan_res = scan_skill_package(files)
+            safety_score = scan_res.safety_score
+            security_scan_data = scan_res.to_dict()
+            if self.config.security.block_critical and safety_score == "CRITICAL":
+                msg = (
+                    scan_res.findings[0].message
+                    if scan_res.findings
+                    else "Security vulnerabilities detected"
+                )
+                raise ValueError(f"Security scan rejected skill: {msg}")
+
         text_for_embedding = f"{name} {description} {instructions}"
         embeddings = None
         model_name = getattr(self.embedding, "model_name", "none")
@@ -171,6 +189,8 @@ class AsyncSkillRegistry:
             instructions=instructions,
             embeddings=embeddings,
             model_name=model_name,
+            safety_score=safety_score,
+            security_scan=security_scan_data,
         )
         saved.slug = slug
         return saved
@@ -228,7 +248,7 @@ def _run_async(coro: Coroutine[Any, Any, Any]) -> Any:
                 new_loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(new_loop)
                 result.append(new_loop.run_until_complete(coro))
-            except BaseException as e:
+            except Exception as e:
                 error.append(e)
             finally:
                 new_loop.close()

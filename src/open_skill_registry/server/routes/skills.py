@@ -296,6 +296,8 @@ async def get_skill_version(
         "tags": await storage.get_version_tags(sv.id),
         "is_yanked": sv.is_yanked,
         "yanked": sv.is_yanked,
+        "safety_score": getattr(sv, "safety_score", "SAFE"),
+        "security_scan": getattr(sv, "security_scan", None),
     })
 
 
@@ -512,6 +514,8 @@ async def get_tag_shortcut(
         "tags": await storage.get_version_tags(sv.id),
         "is_yanked": sv.is_yanked,
         "yanked": sv.is_yanked,
+        "safety_score": getattr(sv, "safety_score", "SAFE"),
+        "security_scan": getattr(sv, "security_scan", None),
     })
 
 @router.get("/{namespace}/{slug}/resolve")

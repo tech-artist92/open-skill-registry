@@ -25,6 +25,8 @@ class BaseStorage(ABC):
         embeddings: Optional[List[float]] = None,
         model_name: Optional[str] = None,
         visibility: Optional[str] = "PUBLIC",
+        safety_score: str = "SAFE",
+        security_scan: Optional[Dict[str, Any]] = None,
     ) -> SkillVersion:
         pass
 

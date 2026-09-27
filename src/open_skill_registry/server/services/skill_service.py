@@ -42,6 +42,31 @@ class SkillService:
                     f"Invalid visibility '{visibility}'. Must be one of: PUBLIC, NAMESPACE_ONLY, PRIVATE"
                 )
 
+        # Security scan
+        scan_on_push = True
+        block_critical = True
+        if self.config and hasattr(self.config, "security") and self.config.security:
+            scan_on_push = getattr(self.config.security, "scan_on_push", True)
+            block_critical = getattr(self.config.security, "block_critical", True)
+        elif self.config is None:
+            scan_on_push = False
+            block_critical = False
+
+        safety_score = "SAFE"
+        security_scan_data = None
+        if scan_on_push:
+            from open_skill_registry.registry.security.scanner import scan_skill_package
+            scan_result = scan_skill_package(files)
+            safety_score = scan_result.safety_score
+            security_scan_data = scan_result.to_dict()
+            if block_critical and safety_score == "CRITICAL":
+                msg = (
+                    scan_result.findings[0].message
+                    if scan_result.findings
+                    else "Security vulnerabilities detected"
+                )
+                raise ValueError(f"Security scan rejected skill: {msg}")
+
         # Core validation
         validate_package_or_raise(files)
         
@@ -83,10 +108,15 @@ class SkillService:
             provider_type = getattr(self.config.search, 'provider', "fastembed")
             model_name = getattr(self.config.search, 'model', None)
         
-        provider = get_embedding_provider(provider_type=provider_type, model_name=model_name)
-        
-        text_for_embedding = f"{name}\n\n{frontmatter.get('description', '')}"
-        embedding = await provider.embed_text(text_for_embedding)
+        embedding = None
+        provider_name = None
+        try:
+            provider = get_embedding_provider(provider_type=provider_type, model_name=model_name)
+            provider_name = provider.__class__.__name__
+            text_for_embedding = f"{name}\n\n{frontmatter.get('description', '')}"
+            embedding = await provider.embed_text(text_for_embedding)
+        except Exception:
+            embedding = None
         
         saved_version = await self.storage.save_skill_version(
             namespace=namespace,
@@ -99,8 +129,10 @@ class SkillService:
             parsed_frontmatter=frontmatter,
             instructions=instructions,
             embeddings=embedding,
-            model_name=provider.__class__.__name__,
+            model_name=provider_name,
             visibility=visibility,
+            safety_score=safety_score,
+            security_scan=security_scan_data,
         )
         
         await self.storage.tag_version(namespace, slug, version, "latest")

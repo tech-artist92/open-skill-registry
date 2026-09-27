@@ -2,7 +2,7 @@ from pathlib import Path
 
 import typer
 
-from open_skill_registry.cli.commands import init, serve, push, search, info, pull, verify, tag, login, namespace, yank
+from open_skill_registry.cli.commands import init, serve, push, search, info, pull, verify, tag, login, namespace, yank, scan
 
 app = typer.Typer(name="osr", help="Open Skill Registry CLI", no_args_is_help=True)
 
@@ -19,6 +19,7 @@ app.command(name="pull", help="Pull a skill from the registry to local disk")(pu
 app.command(name="verify", help="Verify cryptographic hashes of a local skill package")(verify.verify)
 app.command(name="tag", help="Assign a release tag to a skill version")(tag.tag)
 app.command(name="yank", help="Yank a faulty skill version")(yank.yank)
+app.command(name="scan", help="Scan a skill package for security vulnerabilities and secrets")(scan.scan)
 
 def version_callback(value: bool):
     if value:

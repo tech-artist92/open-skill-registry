@@ -46,6 +46,8 @@ class SQLiteStorage(BaseStorage):
         embeddings: Optional[List[float]] = None,
         model_name: Optional[str] = None,
         visibility: Optional[str] = "PUBLIC",
+        safety_score: str = "SAFE",
+        security_scan: Optional[Dict[str, Any]] = None,
     ) -> SkillVersion:
         if visibility is not None:
             visibility = visibility.upper().strip()
@@ -96,7 +98,9 @@ class SQLiteStorage(BaseStorage):
                 instructions=instructions,
                 parsed_frontmatter=parsed_frontmatter,
                 manifest=manifest.model_dump(),
-                compliance_snapshot={}
+                compliance_snapshot={},
+                safety_score=safety_score,
+                security_scan=security_scan,
             )
             session.add(sv)
             await session.flush()
