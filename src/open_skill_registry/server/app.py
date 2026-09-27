@@ -1,0 +1,114 @@
+import uuid
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from open_skill_registry.config import RegistryConfig
+from open_skill_registry.registry.storage.factory import get_storage
+from open_skill_registry.server.db.session import close_db, get_async_engine, init_db
+from open_skill_registry.server.mcp import sse_router
+from open_skill_registry.server.routes import auth, health, namespaces, skills
+from open_skill_registry.server.services.cache_service import CacheService
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await init_db()
+    yield
+    # Shutdown
+    await close_db()
+
+def create_app(config: RegistryConfig | None = None) -> FastAPI:
+    if config is None:
+        config = RegistryConfig.load()
+
+    app = FastAPI(
+        title="Open Skill Registry",
+        lifespan=lifespan
+    )
+    
+    app.state.config = config
+    db_url = getattr(config.database, "url", None) if hasattr(config, "database") else None
+    engine = get_async_engine(db_url)
+    app.state.engine = engine
+    app.state.storage = get_storage(config, engine)
+    app.state.cache_service = CacheService(config=getattr(config, "cache", None))
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.middleware("http")
+    async def request_id_middleware(request: Request, call_next):
+        request_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())
+        response = await call_next(request)
+        response.headers["X-Request-Id"] = request_id
+        return response
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "code": exc.status_code,
+                "error": str(exc.detail),
+                "data": None
+            }
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        return JSONResponse(
+            status_code=422,
+            content={
+                "code": 422,
+                "error": "Validation error",
+                "data": {"errors": exc.errors()}
+            }
+        )
+
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request: Request, exc: Exception):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "code": 500,
+                "error": "Internal server error",
+                "data": None
+            }
+        )
+
+    app.include_router(health.router)
+    app.include_router(health.router, prefix="/api/v1")
+    app.include_router(auth.router)
+    app.include_router(namespaces.router)
+    app.include_router(skills.router)
+    app.include_router(sse_router, prefix="/mcp")
+    app.include_router(sse_router, prefix="/api/v1/mcp")
+
+    static_dir = Path(__file__).parent / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+        @app.get("/", include_in_schema=False)
+        async def serve_index() -> Response:
+            index_file = static_dir / "index.html"
+            if index_file.exists():
+                return FileResponse(index_file)
+            return JSONResponse(
+                status_code=404,
+                content={"code": 404, "error": "Not found", "data": None},
+            )
+
+    return app
