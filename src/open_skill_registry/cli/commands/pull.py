@@ -1,9 +1,10 @@
-import typer
-from rich.console import Console
 import hashlib
 from pathlib import Path
-from open_skill_registry.client.main import SkillRegistryClient
 
+import typer
+from rich.console import Console
+
+from open_skill_registry.client.main import SkillRegistryClient
 
 console = Console()
 

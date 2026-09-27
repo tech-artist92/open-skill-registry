@@ -1,12 +1,11 @@
-from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
 import uuid
+from abc import ABC, abstractmethod
+from typing import Any, Optional
 
-from open_skill_registry.models.skill import SkillDetail, SkillSummary
 from open_skill_registry.models.manifest import SkillManifest
 from open_skill_registry.models.response import Page
-from open_skill_registry.server.db.models import SkillVersion, SkillResource
-
+from open_skill_registry.models.skill import SkillDetail, SkillSummary
+from open_skill_registry.server.db.models import SkillResource, SkillVersion
 
 
 class BaseStorage(ABC):
@@ -19,51 +18,51 @@ class BaseStorage(ABC):
         description: str,
         version: str,
         manifest: SkillManifest,
-        files: Dict[str, bytes],
-        parsed_frontmatter: Dict[str, Any],
+        files: dict[str, bytes],
+        parsed_frontmatter: dict[str, Any],
         instructions: str,
-        embeddings: Optional[List[float]] = None,
-        model_name: Optional[str] = None,
-        visibility: Optional[str] = "PUBLIC",
+        embeddings: list[float] | None = None,
+        model_name: str | None = None,
+        visibility: str | None = "PUBLIC",
         safety_score: str = "SAFE",
-        security_scan: Optional[Dict[str, Any]] = None,
+        security_scan: dict[str, Any] | None = None,
     ) -> SkillVersion:
         pass
 
     @abstractmethod
-    async def get_skill(self, namespace: str, slug: str) -> Optional[SkillDetail]:
+    async def get_skill(self, namespace: str, slug: str) -> SkillDetail | None:
         pass
 
     @abstractmethod
-    async def get_skill_version(self, namespace: str, slug: str, version: str) -> Optional[SkillVersion]:
+    async def get_skill_version(self, namespace: str, slug: str, version: str) -> SkillVersion | None:
         pass
 
     @abstractmethod
-    async def get_version_tags(self, version_id: uuid.UUID) -> List[str]:
+    async def get_version_tags(self, version_id: uuid.UUID) -> list[str]:
         pass
 
     @abstractmethod
-    async def get_skill_resources(self, version_id: uuid.UUID) -> Dict[str, bytes]:
+    async def get_skill_resources(self, version_id: uuid.UUID) -> dict[str, bytes]:
         pass
 
     @abstractmethod
     async def search_skills(
         self,
         query: str,
-        query_vector: Optional[List[float]] = None,
+        query_vector: list[float] | None = None,
         limit: int = 10,
-        namespace: Optional[str] = None,
-        allowed_namespaces: Optional[List[str]] = None,
+        namespace: str | None = None,
+        allowed_namespaces: list[str] | None = None,
         is_admin: bool = False,
-    ) -> List[SkillSummary]:
+    ) -> list[SkillSummary]:
         pass
 
     @abstractmethod
-    async def resolve_version(self, namespace: str, slug: str, constraint: str) -> Optional[SkillVersion]:
+    async def resolve_version(self, namespace: str, slug: str, constraint: str) -> SkillVersion | None:
         pass
 
     @abstractmethod
-    async def resolve_by_hash(self, namespace: str, slug: str, content_hash: str) -> Optional[SkillVersion]:
+    async def resolve_by_hash(self, namespace: str, slug: str, content_hash: str) -> SkillVersion | None:
         pass
 
     @abstractmethod
@@ -77,11 +76,11 @@ class BaseStorage(ABC):
     @abstractmethod
     async def list_skills(
         self,
-        namespace: Optional[str] = None,
+        namespace: str | None = None,
         page: int = 1,
         size: int = 20,
         sort: str = "updated",
-        allowed_namespaces: Optional[List[str]] = None,
+        allowed_namespaces: list[str] | None = None,
         is_admin: bool = False,
     ) -> 'Page[SkillSummary]':
         pass

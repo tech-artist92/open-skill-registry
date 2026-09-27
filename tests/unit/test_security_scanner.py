@@ -1,29 +1,26 @@
 """Unit tests for the Security Scanner and publish integration (T060)."""
 
-import io
 import zipfile
-import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from httpx import ASGITransport, AsyncClient
 from typer.testing import CliRunner
-from httpx import AsyncClient, ASGITransport
 
-from open_skill_registry.registry.security.scanner import (
-    Severity,
-    ScanFinding,
-    SecurityScanResult,
-    scan_skill_package,
-    scan_path,
-    scan_directory,
-)
-from open_skill_registry.config import RegistryConfig
-from open_skill_registry.server.services.skill_service import SkillService
-from open_skill_registry.models.manifest import SkillManifest
-from open_skill_registry.server.db.models import SkillVersion
 from open_skill_registry.cli.main import app as cli_app
+from open_skill_registry.config import RegistryConfig
+from open_skill_registry.registry.security.scanner import (
+    SecurityScanResult,
+    Severity,
+    scan_directory,
+    scan_path,
+    scan_skill_package,
+)
 from open_skill_registry.server.app import create_app
+from open_skill_registry.server.db.models import SkillVersion
 from open_skill_registry.server.db.session import init_db
-
+from open_skill_registry.server.services.skill_service import SkillService
 
 # --- Unit Tests: Scanner Heuristics ---
 
@@ -56,7 +53,7 @@ def test_clean_package_scan():
 def test_prompt_injection_detection(injection_payload: str):
     """Detects prompt injection and jailbreak attempts."""
     files = {
-        "SKILL.md": f"---\nname: inject\ndescription: test\n---\n{injection_payload}".encode("utf-8")
+        "SKILL.md": f"---\nname: inject\ndescription: test\n---\n{injection_payload}".encode()
     }
     result = scan_skill_package(files)
     assert result.passed is False
@@ -108,7 +105,7 @@ def test_dangerous_shell_command_detection(dangerous_cmd: str, expected_rule: st
     """Detects dangerous shell executions and privilege escalation."""
     files = {
         "SKILL.md": b"---\nname: danger-shell\ndescription: test\n---\nContent",
-        "scripts/setup.sh": f"#!/bin/bash\n{dangerous_cmd}\n".encode("utf-8"),
+        "scripts/setup.sh": f"#!/bin/bash\n{dangerous_cmd}\n".encode(),
     }
     result = scan_skill_package(files)
     assert result.passed is False
@@ -277,6 +274,7 @@ async def test_publish_skill_allows_critical_when_block_critical_false():
     mock_storage.save_skill_version.return_value = saved_sv
 
     result = await service.publish_skill(namespace="public", files=malicious_files)
+    assert result is not None
     assert mock_storage.save_skill_version.called
     kwargs = mock_storage.save_skill_version.call_args.kwargs
     assert kwargs["safety_score"] == "CRITICAL"
@@ -309,6 +307,7 @@ async def test_publish_skill_clean_package_success():
     mock_storage.save_skill_version.return_value = saved_sv
 
     result = await service.publish_skill(namespace="public", files=clean_files)
+    assert result is not None
     assert mock_storage.save_skill_version.called
     kwargs = mock_storage.save_skill_version.call_args.kwargs
     assert kwargs["safety_score"] == "SAFE"

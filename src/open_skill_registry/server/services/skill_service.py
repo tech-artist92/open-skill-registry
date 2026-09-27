@@ -1,15 +1,16 @@
-import io
-import zipfile
+from typing import Any
+
 import yaml
-from typing import Dict, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from open_skill_registry.server.db.models import SkillVersion
-from open_skill_registry.models.exceptions import DuplicateVersionError
-from open_skill_registry.registry.core.validator import validate_package_or_raise
-from open_skill_registry.registry.core.manifest import compute_manifest
-from open_skill_registry.registry.embeddings.factory import get_embedding_provider
+
 from open_skill_registry.config import RegistryConfig
+from open_skill_registry.models.exceptions import DuplicateVersionError
+from open_skill_registry.registry.core.manifest import compute_manifest
+from open_skill_registry.registry.core.validator import validate_package_or_raise
+from open_skill_registry.registry.embeddings.factory import get_embedding_provider
 from open_skill_registry.registry.storage.base import BaseStorage
+from open_skill_registry.server.db.models import SkillVersion
+
 
 class SkillService:
     def __init__(self, db_session: AsyncSession, storage: BaseStorage, config: RegistryConfig):
@@ -20,11 +21,11 @@ class SkillService:
     async def publish_skill(
         self, 
         namespace: str, 
-        files: Dict[str, bytes], 
-        explicit_slug: Optional[str] = None, 
-        explicit_version: Optional[str] = None, 
+        files: dict[str, bytes], 
+        explicit_slug: str | None = None, 
+        explicit_version: str | None = None, 
         created_by: str = "anonymous",
-        visibility: Optional[str] = None,
+        visibility: str | None = None,
     ) -> SkillVersion:
         
         # Path traversal check
@@ -139,7 +140,7 @@ class SkillService:
         
         return saved_version
 
-    def _parse_frontmatter(self, content: bytes) -> Dict[str, Any]:
+    def _parse_frontmatter(self, content: bytes) -> dict[str, Any]:
         text = content.decode("utf-8", errors="replace")
         if text.startswith("---"):
             parts = text.split("---", 2)

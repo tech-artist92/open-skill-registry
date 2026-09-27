@@ -2,9 +2,8 @@
 import pytest
 
 from open_skill_registry import AsyncSkillRegistry, RegistryConfig, SkillRegistry
+from open_skill_registry.config import DatabaseConfig, SearchConfig, StorageConfig
 
-
-from open_skill_registry.config import DatabaseConfig, StorageConfig, SearchConfig
 
 @pytest.fixture
 def memory_config():
@@ -98,6 +97,7 @@ async def test_version_immutability(memory_config):
 
 
 from unittest.mock import patch
+
 
 @pytest.mark.asyncio
 @patch("open_skill_registry.registry.embeddings.fastembed.FastEmbedProvider.embed_text")

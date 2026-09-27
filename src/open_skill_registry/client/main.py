@@ -1,23 +1,22 @@
 import io
-import os
 import zipfile
 from pathlib import Path
-from typing import Optional, Any, Union, Dict
+from typing import Any
 
 import httpx
 
 try:
     from typing import Self
 except ImportError:
-    from typing_extensions import Self
+    from typing import Self
 
 from open_skill_registry.client.exceptions import (
-    NotFoundError,
-    SkillNotFoundError,
     AuthenticationError,
     DuplicateVersionError,
-    OpenSkillRegistryClientError
+    NotFoundError,
+    OpenSkillRegistryClientError,
 )
+
 
 def _handle_response(response: httpx.Response, expect_json: bool = True) -> Any:
     if response.status_code >= 400:
@@ -48,10 +47,10 @@ class AsyncSkillRegistryClient:
     """
     def __init__(
         self,
-        base_url: Optional[str] = "http://localhost:8080",
-        api_key: Optional[str] = None,
+        base_url: str | None = "http://localhost:8080",
+        api_key: str | None = None,
         timeout: float = 10.0,
-        transport: Optional[httpx.AsyncBaseTransport] = None
+        transport: httpx.AsyncBaseTransport | None = None
     ):
         base_url = base_url or "http://localhost:8080"
         self.base_url = base_url.rstrip("/")
@@ -76,7 +75,7 @@ class AsyncSkillRegistryClient:
         """Close the underlying HTTP client."""
         await self._client.aclose()
 
-    async def search(self, query: str, limit: int = 10, namespace: Optional[str] = None) -> Any:
+    async def search(self, query: str, limit: int = 10, namespace: str | None = None) -> Any:
         """
         Search for skills.
         
@@ -94,7 +93,7 @@ class AsyncSkillRegistryClient:
         response = await self._client.get("/api/v1/skills/search", params=params)
         return _handle_response(response)
 
-    async def list_skills(self, page: int = 1, size: int = 20, namespace: Optional[str] = None, sort: str = "updated") -> Any:
+    async def list_skills(self, page: int = 1, size: int = 20, namespace: str | None = None, sort: str = "updated") -> Any:
         """
         List all skills, optionally filtered by namespace.
         
@@ -142,7 +141,7 @@ class AsyncSkillRegistryClient:
         response = await self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}")
         return _handle_response(response)
 
-    async def yank_version(self, namespace: str, slug: str, version: str) -> Dict[str, Any]:
+    async def yank_version(self, namespace: str, slug: str, version: str) -> dict[str, Any]:
         """
         Yank a faulty skill version.
 
@@ -199,10 +198,10 @@ class AsyncSkillRegistryClient:
 
     async def publish(
         self,
-        file_data: Union[bytes, io.BytesIO, str, Path],
+        file_data: bytes | io.BytesIO | str | Path,
         namespace: str = "public",
-        slug: Optional[str] = None,
-        version: Optional[str] = None
+        slug: str | None = None,
+        version: str | None = None
     ) -> Any:
         """
         Publish a new skill or a new version of an existing skill.
@@ -247,11 +246,11 @@ class AsyncSkillRegistryClient:
     async def publish_skill(
         self,
         namespace: str = "public",
-        slug: Optional[str] = None,
-        version: Optional[str] = None,
-        files: Optional[dict[str, bytes]] = None,
-        file_data: Optional[Union[bytes, io.BytesIO, str, Path]] = None,
-        visibility: Optional[str] = None,
+        slug: str | None = None,
+        version: str | None = None,
+        files: dict[str, bytes] | None = None,
+        file_data: bytes | io.BytesIO | str | Path | None = None,
+        visibility: str | None = None,
     ) -> Any:
         """
         Publish a skill version with either raw files dictionary or package file data.
@@ -284,7 +283,7 @@ class AsyncSkillRegistryClient:
         self,
         slug: str,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         visibility: str = "PUBLIC"
     ) -> Any:
         body = {"slug": slug, "name": name, "description": description, "visibility": visibility}
@@ -303,9 +302,9 @@ class AsyncSkillRegistryClient:
     async def update_namespace(
         self,
         slug: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        visibility: Optional[str] = None
+        name: str | None = None,
+        description: str | None = None,
+        visibility: str | None = None
     ) -> Any:
         body = {}
         if name is not None:
@@ -320,9 +319,9 @@ class AsyncSkillRegistryClient:
     async def create_key(
         self,
         label: str,
-        namespace_slug: Optional[str] = None,
-        permissions: Optional[list[str]] = None,
-        expires_at: Optional[Any] = None
+        namespace_slug: str | None = None,
+        permissions: list[str] | None = None,
+        expires_at: Any | None = None
     ) -> Any:
         body = {"label": label, "namespace_slug": namespace_slug, "permissions": permissions or ["READ", "WRITE"]}
         if expires_at is not None:
@@ -330,7 +329,7 @@ class AsyncSkillRegistryClient:
         response = await self._client.post("/api/v1/keys", json=body)
         return _handle_response(response)
 
-    async def list_keys(self, namespace: Optional[str] = None) -> Any:
+    async def list_keys(self, namespace: str | None = None) -> Any:
         params = {}
         if namespace:
             params["namespace"] = namespace
@@ -347,10 +346,10 @@ class SkillRegistryClient:
     """
     def __init__(
         self,
-        base_url: Optional[str] = "http://localhost:8080",
-        api_key: Optional[str] = None,
+        base_url: str | None = "http://localhost:8080",
+        api_key: str | None = None,
         timeout: float = 10.0,
-        transport: Optional[httpx.BaseTransport] = None
+        transport: httpx.BaseTransport | None = None
     ):
         base_url = base_url or "http://localhost:8080"
         self.base_url = base_url.rstrip("/")
@@ -375,7 +374,7 @@ class SkillRegistryClient:
         """Close the underlying HTTP client."""
         self._client.close()
 
-    def search(self, query: str, limit: int = 10, namespace: Optional[str] = None) -> Any:
+    def search(self, query: str, limit: int = 10, namespace: str | None = None) -> Any:
         """
         Search for skills.
         
@@ -393,7 +392,7 @@ class SkillRegistryClient:
         response = self._client.get("/api/v1/skills/search", params=params)
         return _handle_response(response)
 
-    def list_skills(self, page: int = 1, size: int = 20, namespace: Optional[str] = None, sort: str = "updated") -> Any:
+    def list_skills(self, page: int = 1, size: int = 20, namespace: str | None = None, sort: str = "updated") -> Any:
         """
         List all skills, optionally filtered by namespace.
         
@@ -441,7 +440,7 @@ class SkillRegistryClient:
         response = self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}")
         return _handle_response(response)
 
-    def yank_version(self, namespace: str, slug: str, version: str) -> Dict[str, Any]:
+    def yank_version(self, namespace: str, slug: str, version: str) -> dict[str, Any]:
         """
         Yank a faulty skill version.
 
@@ -498,10 +497,10 @@ class SkillRegistryClient:
 
     def publish(
         self,
-        file_data: Union[bytes, io.BytesIO, str, Path],
+        file_data: bytes | io.BytesIO | str | Path,
         namespace: str = "public",
-        slug: Optional[str] = None,
-        version: Optional[str] = None
+        slug: str | None = None,
+        version: str | None = None
     ) -> Any:
         """
         Publish a new skill or a new version of an existing skill.
@@ -546,11 +545,11 @@ class SkillRegistryClient:
     def publish_skill(
         self,
         namespace: str = "public",
-        slug: Optional[str] = None,
-        version: Optional[str] = None,
-        files: Optional[dict[str, bytes]] = None,
-        file_data: Optional[Union[bytes, io.BytesIO, str, Path]] = None,
-        visibility: Optional[str] = None,
+        slug: str | None = None,
+        version: str | None = None,
+        files: dict[str, bytes] | None = None,
+        file_data: bytes | io.BytesIO | str | Path | None = None,
+        visibility: str | None = None,
     ) -> Any:
         """
         Publish a skill version with either raw files dictionary or package file data.
@@ -583,7 +582,7 @@ class SkillRegistryClient:
         self,
         slug: str,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         visibility: str = "PUBLIC"
     ) -> Any:
         body = {"slug": slug, "name": name, "description": description, "visibility": visibility}
@@ -602,9 +601,9 @@ class SkillRegistryClient:
     def update_namespace(
         self,
         slug: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        visibility: Optional[str] = None
+        name: str | None = None,
+        description: str | None = None,
+        visibility: str | None = None
     ) -> Any:
         body = {}
         if name is not None:
@@ -619,9 +618,9 @@ class SkillRegistryClient:
     def create_key(
         self,
         label: str,
-        namespace_slug: Optional[str] = None,
-        permissions: Optional[list[str]] = None,
-        expires_at: Optional[Any] = None
+        namespace_slug: str | None = None,
+        permissions: list[str] | None = None,
+        expires_at: Any | None = None
     ) -> Any:
         body = {"label": label, "namespace_slug": namespace_slug, "permissions": permissions or ["READ", "WRITE"]}
         if expires_at is not None:
@@ -629,7 +628,7 @@ class SkillRegistryClient:
         response = self._client.post("/api/v1/keys", json=body)
         return _handle_response(response)
 
-    def list_keys(self, namespace: Optional[str] = None) -> Any:
+    def list_keys(self, namespace: str | None = None) -> Any:
         params = {}
         if namespace:
             params["namespace"] = namespace

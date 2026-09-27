@@ -1,10 +1,13 @@
 import io
 import zipfile
+
 import pytest
-from httpx import AsyncClient, ASGITransport
 import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+
 from open_skill_registry.server.app import create_app
 from open_skill_registry.server.db.session import init_db
+
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def setup_db(app):

@@ -1,19 +1,20 @@
 import asyncio
 import re
 import threading
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import Any, Coroutine
+from typing import Any
 
 import yaml
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from open_skill_registry.config import RegistryConfig
-from open_skill_registry.models.skill import SkillDetail, SkillSummary
+from open_skill_registry.models.skill import SkillDetail
 from open_skill_registry.registry.core.manifest import compute_manifest
 from open_skill_registry.registry.core.validator import validate_package_or_raise
 from open_skill_registry.registry.embeddings.factory import get_embedding_provider
 from open_skill_registry.registry.storage.factory import get_storage
-from open_skill_registry.server.db.models import SkillVersion, SQLModel
+from open_skill_registry.server.db.models import SkillVersion
 from open_skill_registry.server.db.session import init_db
 
 

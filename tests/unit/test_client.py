@@ -1,14 +1,13 @@
-import io
-import json
-import pytest
 import httpx
-from pathlib import Path
-from open_skill_registry.client.main import AsyncSkillRegistryClient, SkillRegistryClient
+import pytest
+
 from open_skill_registry.client.exceptions import (
-    NotFoundError,
     AuthenticationError,
-    DuplicateVersionError
+    DuplicateVersionError,
+    NotFoundError,
 )
+from open_skill_registry.client.main import AsyncSkillRegistryClient, SkillRegistryClient
+
 
 def mock_handler(request: httpx.Request) -> httpx.Response:
     path = request.url.path

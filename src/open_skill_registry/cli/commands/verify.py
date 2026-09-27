@@ -1,11 +1,12 @@
+import hashlib
+from pathlib import Path
+
 import typer
 from rich.console import Console
-from pathlib import Path
-import hashlib
-from open_skill_registry.client.main import SkillRegistryClient
-from open_skill_registry.registry.core.validator import validate_package
-from open_skill_registry.registry.core.manifest import compute_manifest
 
+from open_skill_registry.client.main import SkillRegistryClient
+from open_skill_registry.registry.core.manifest import compute_manifest
+from open_skill_registry.registry.core.validator import validate_package
 
 console = Console()
 

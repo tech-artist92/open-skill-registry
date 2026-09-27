@@ -1,7 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from open_skill_registry.server.services.search_service import SearchService
+
+import pytest
+
 from open_skill_registry.models.skill import SkillSummary
+from open_skill_registry.server.services.search_service import SearchService
+
 
 @pytest.fixture
 def mock_storage():

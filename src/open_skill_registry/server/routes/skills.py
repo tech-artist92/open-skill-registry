@@ -1,21 +1,30 @@
 import io
 import zipfile
-from typing import Optional, Dict, List
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+)
 from pydantic import BaseModel, Field
-from fastapi import Query, Response
-from fastapi.responses import PlainTextResponse
-from open_skill_registry.server.services.search_service import SearchService
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from open_skill_registry.server.db.session import get_db_session
-from open_skill_registry.server.services.skill_service import SkillService
+
 from open_skill_registry.models.exceptions import DuplicateVersionError
 from open_skill_registry.models.response import ResponseEnvelope
+from open_skill_registry.server.db.session import get_db_session
 from open_skill_registry.server.middleware.auth import (
     AuthContext,
     get_auth_context,
     verify_namespace_write,
 )
+from open_skill_registry.server.services.search_service import SearchService
+from open_skill_registry.server.services.skill_service import SkillService
 
 router = APIRouter(prefix="/api/v1/skills", tags=["skills"])
 
@@ -49,9 +58,9 @@ async def publish_skill(
     request: Request,
     file: UploadFile = File(...),
     namespace: str = Form("public"),
-    slug: Optional[str] = Form(None),
-    version: Optional[str] = Form(None),
-    visibility: Optional[str] = Form(None),
+    slug: str | None = Form(None),
+    version: str | None = Form(None),
+    visibility: str | None = Form(None),
     db: AsyncSession = Depends(get_db_session),
     auth: AuthContext = Depends(get_auth_context),
 ):
@@ -70,11 +79,11 @@ async def publish_skill(
     config = getattr(request.app.state, "config", None)
     storage = getattr(request.app.state, "storage", None)
     if storage is None and config:
-        from open_skill_registry.registry.storage.factory import get_storage
         import open_skill_registry.server.db.session as db_session
+        from open_skill_registry.registry.storage.factory import get_storage
         storage = get_storage(config, db_session.global_engine)
 
-    files: Dict[str, bytes] = {}
+    files: dict[str, bytes] = {}
     content = await file.read()
     
     if file.filename and file.filename.endswith(".zip"):
@@ -127,10 +136,10 @@ async def publish_skill(
 @router.get("/search")
 async def search_skills(
     request: Request,
-    q: Optional[str] = Query(None),
-    query: Optional[str] = Query(None),
+    q: str | None = Query(None),
+    query: str | None = Query(None),
     limit: int = Query(10, ge=1, le=100),
-    namespace: Optional[str] = Query(None),
+    namespace: str | None = Query(None),
     auth: AuthContext = Depends(get_auth_context),
 ):
     search_q = q or query
@@ -175,7 +184,7 @@ async def list_skills(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     sort: str = Query("updated"),
-    namespace: Optional[str] = Query(None),
+    namespace: str | None = Query(None),
     auth: AuthContext = Depends(get_auth_context),
 ):
     storage = getattr(request.app.state, "storage", None)
@@ -306,7 +315,7 @@ async def _fetch_instructions(
     response: Response,
     namespace: str,
     slug: str,
-    version: Optional[str],
+    version: str | None,
     auth: AuthContext,
 ) -> Response:
     storage = getattr(request.app.state, "storage", None)
@@ -347,7 +356,7 @@ async def get_skill_instructions_query(
     response: Response,
     namespace: str,
     slug: str,
-    version: Optional[str] = Query(None),
+    version: str | None = Query(None),
     auth: AuthContext = Depends(get_auth_context),
 ):
     return await _fetch_instructions(request, response, namespace, slug, version, auth)
@@ -370,7 +379,7 @@ async def _fetch_file(
     response: Response,
     namespace: str,
     slug: str,
-    version: Optional[str],
+    version: str | None,
     path: str,
     auth: AuthContext,
 ) -> Response:
@@ -416,7 +425,7 @@ async def get_skill_file_query(
     namespace: str,
     slug: str,
     path: str = Query(...),
-    version: Optional[str] = Query(None),
+    version: str | None = Query(None),
     auth: AuthContext = Depends(get_auth_context),
 ):
     return await _fetch_file(request, response, namespace, slug, version, path, auth)
@@ -524,9 +533,9 @@ async def resolve_skill(
     response: Response,
     namespace: str,
     slug: str,
-    hash: Optional[str] = Query(None),
-    version: Optional[str] = Query(None),
-    tag: Optional[str] = Query(None),
+    hash: str | None = Query(None),
+    version: str | None = Query(None),
+    tag: str | None = Query(None),
     auth: AuthContext = Depends(get_auth_context),
 ):
     storage = getattr(request.app.state, "storage", None)

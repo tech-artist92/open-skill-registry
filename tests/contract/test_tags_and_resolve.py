@@ -1,13 +1,14 @@
-import pytest
-from httpx import AsyncClient, ASGITransport
 import io
 import zipfile
+
+import pytest
 import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
 from typer.testing import CliRunner
 
+from open_skill_registry.cli.main import app as cli_app
 from open_skill_registry.server.app import create_app
 from open_skill_registry.server.db.session import init_db
-from open_skill_registry.cli.main import app as cli_app
 
 runner = CliRunner()
 
@@ -48,6 +49,7 @@ async def test_tag_mutation_and_resolution(app):
         
         content_hash_1 = v1_data["content_hash"]
         content_hash_2 = v2_data["content_hash"]
+        assert content_hash_2 != content_hash_1
 
         # Assign tag to v1
         response = await client.put(
@@ -129,7 +131,8 @@ async def test_tag_mutation_404(app):
         response = await client.get("/api/v1/skills/ns/slug/resolve?version=9.9.9")
         assert response.status_code == 404
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 
 def test_cli_tag():
     with patch("open_skill_registry.cli.commands.tag.Client") as MockClient:

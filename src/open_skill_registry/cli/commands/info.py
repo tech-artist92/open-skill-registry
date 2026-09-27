@@ -1,8 +1,9 @@
+
 import typer
 from rich.console import Console
-import json
-from open_skill_registry.client.main import SkillRegistryClient
+
 from open_skill_registry.client.exceptions import NotFoundError
+from open_skill_registry.client.main import SkillRegistryClient
 
 console = Console()
 

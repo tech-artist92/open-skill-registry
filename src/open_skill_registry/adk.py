@@ -14,7 +14,7 @@ from .client.main import AsyncSkillRegistryClient, SkillRegistryClient
 from .registry.main import AsyncSkillRegistry, SkillRegistry
 
 logger = logging.getLogger(__name__)
-_ADK_THREAD_POOL: Optional[Any] = None
+_ADK_THREAD_POOL: Any | None = None
 
 
 class SkillNotFoundError(Exception):

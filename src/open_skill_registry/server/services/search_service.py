@@ -1,8 +1,8 @@
-from typing import List, Optional
-from open_skill_registry.models.skill import SkillSummary
-from open_skill_registry.registry.storage.base import BaseStorage
-from open_skill_registry.registry.embeddings.base import BaseEmbeddingProvider
+
 from open_skill_registry.config import RegistryConfig
+from open_skill_registry.registry.embeddings.base import BaseEmbeddingProvider
+from open_skill_registry.registry.storage.base import BaseStorage
+
 
 class SearchService:
     def __init__(self, storage: BaseStorage, config: RegistryConfig):
@@ -10,7 +10,7 @@ class SearchService:
         self.config = config
         self.embedder = self._init_embedder()
 
-    def _init_embedder(self) -> Optional[BaseEmbeddingProvider]:
+    def _init_embedder(self) -> BaseEmbeddingProvider | None:
         if not self.config or not hasattr(self.config, 'search'):
             return None
             
@@ -30,10 +30,10 @@ class SearchService:
         self,
         query: str,
         limit: int = 10,
-        namespace: Optional[str] = None,
-        allowed_namespaces: Optional[List[str]] = None,
+        namespace: str | None = None,
+        allowed_namespaces: list[str] | None = None,
         is_admin: bool = False,
-    ) -> List[dict]:
+    ) -> list[dict]:
         extra_kwargs = {}
         if allowed_namespaces is not None:
             extra_kwargs["allowed_namespaces"] = allowed_namespaces

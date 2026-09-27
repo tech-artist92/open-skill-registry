@@ -1,13 +1,13 @@
-import pytest
-from httpx import AsyncClient, ASGITransport
-import uuid
 import io
 import zipfile
+
+import pytest
 import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
 
 from open_skill_registry.server.app import create_app
 from open_skill_registry.server.db.session import init_db
-import open_skill_registry.server.db.session as db_session
+
 
 @pytest.fixture
 def app():

@@ -736,6 +736,7 @@ async def test_remote_client_fallback_manifest_and_metadata():
 def test_protocol_model_immutability_and_keyerror():
     """Verify MCP protocol models are frozen (immutable) and raise KeyError on missing keys."""
     from pydantic import ValidationError
+
     from open_skill_registry.server.mcp.protocol import (
         JSONRPCError,
         JSONRPCRequest,

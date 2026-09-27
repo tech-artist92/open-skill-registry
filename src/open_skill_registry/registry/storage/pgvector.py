@@ -1,14 +1,22 @@
 import uuid
-from typing import Dict, Any, List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text, or_
+from typing import Any
 
-from open_skill_registry.registry.storage.base import BaseStorage
-from open_skill_registry.models.skill import SkillDetail, SkillSummary
+from sqlalchemy import func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from open_skill_registry.models.manifest import SkillManifest
+from open_skill_registry.models.skill import SkillDetail, SkillSummary
+from open_skill_registry.registry.storage.base import BaseStorage
 from open_skill_registry.server.db.models import (
-    Namespace, Skill, SkillVersion, SkillResource, SkillEmbedding, ReleaseTag, get_utc_now
+    Namespace,
+    ReleaseTag,
+    Skill,
+    SkillEmbedding,
+    SkillResource,
+    SkillVersion,
+    get_utc_now,
 )
+
 
 class PgVectorStorage(BaseStorage):
     def __init__(self, session_maker):
@@ -31,14 +39,14 @@ class PgVectorStorage(BaseStorage):
         description: str,
         version: str,
         manifest: SkillManifest,
-        files: Dict[str, bytes],
-        parsed_frontmatter: Dict[str, Any],
+        files: dict[str, bytes],
+        parsed_frontmatter: dict[str, Any],
         instructions: str,
-        embeddings: Optional[List[float]] = None,
-        model_name: Optional[str] = None,
-        visibility: Optional[str] = "PUBLIC",
+        embeddings: list[float] | None = None,
+        model_name: str | None = None,
+        visibility: str | None = "PUBLIC",
         safety_score: str = "SAFE",
-        security_scan: Optional[Dict[str, Any]] = None,
+        security_scan: dict[str, Any] | None = None,
     ) -> SkillVersion:
         if visibility is not None:
             visibility = visibility.upper().strip()
@@ -129,7 +137,7 @@ class PgVectorStorage(BaseStorage):
             await session.refresh(sv)
             return sv
 
-    async def get_skill(self, namespace: str, slug: str) -> Optional[SkillDetail]:
+    async def get_skill(self, namespace: str, slug: str) -> SkillDetail | None:
         async with self.session_maker() as session:
             result = await session.execute(
                 select(Skill)
@@ -188,7 +196,7 @@ class PgVectorStorage(BaseStorage):
                 updated_at=skill.updated_at
             )
 
-    async def get_skill_version(self, namespace: str, slug: str, version: str) -> Optional[SkillVersion]:
+    async def get_skill_version(self, namespace: str, slug: str, version: str) -> SkillVersion | None:
         async with self.session_maker() as session:
             result = await session.execute(
                 select(SkillVersion)
@@ -199,13 +207,14 @@ class PgVectorStorage(BaseStorage):
             return result.scalar_one_or_none()
 
     async def get_version_tags(self, version_id) -> list[str]:
-        from open_skill_registry.server.db.models import ReleaseTag
         from sqlalchemy import select
+
+        from open_skill_registry.server.db.models import ReleaseTag
         async with self.session_maker() as session:
             result = await session.execute(select(ReleaseTag.tag_name).where(ReleaseTag.version_id == version_id))
             return list(result.scalars().all())
 
-    async def get_skill_resources(self, version_id: uuid.UUID) -> Dict[str, bytes]:
+    async def get_skill_resources(self, version_id: uuid.UUID) -> dict[str, bytes]:
         async with self.session_maker() as session:
             result = await session.execute(
                 select(SkillResource).where(SkillResource.version_id == version_id)
@@ -215,12 +224,12 @@ class PgVectorStorage(BaseStorage):
     async def search_skills(
         self,
         query: str,
-        query_vector: Optional[List[float]] = None,
+        query_vector: list[float] | None = None,
         limit: int = 10,
-        namespace: Optional[str] = None,
-        allowed_namespaces: Optional[List[str]] = None,
+        namespace: str | None = None,
+        allowed_namespaces: list[str] | None = None,
         is_admin: bool = False,
-    ) -> List[SkillSummary]:
+    ) -> list[SkillSummary]:
         async with self.session_maker() as session:
             # We construct a query using func.ts_rank_cd and optionally vector cosine distance.
             
@@ -303,7 +312,7 @@ class PgVectorStorage(BaseStorage):
                 ))
             return skills
 
-    async def resolve_version(self, namespace: str, slug: str, constraint: str) -> Optional[SkillVersion]:
+    async def resolve_version(self, namespace: str, slug: str, constraint: str) -> SkillVersion | None:
         async with self.session_maker() as session:
             tag_res = await session.execute(
                 select(ReleaseTag)
@@ -334,7 +343,7 @@ class PgVectorStorage(BaseStorage):
 
             return await self.get_skill_version(namespace, slug, constraint)
 
-    async def resolve_by_hash(self, namespace: str, slug: str, content_hash: str) -> Optional[SkillVersion]:
+    async def resolve_by_hash(self, namespace: str, slug: str, content_hash: str) -> SkillVersion | None:
         async with self.session_maker() as session:
             result = await session.execute(
                 select(SkillVersion)
@@ -428,11 +437,11 @@ class PgVectorStorage(BaseStorage):
 
     async def list_skills(
         self,
-        namespace: Optional[str] = None,
+        namespace: str | None = None,
         page: int = 1,
         size: int = 20,
         sort: str = "updated",
-        allowed_namespaces: Optional[List[str]] = None,
+        allowed_namespaces: list[str] | None = None,
         is_admin: bool = False,
     ) -> Any:
         from open_skill_registry.models.response import Page
@@ -488,7 +497,7 @@ class PgVectorStorage(BaseStorage):
             
             return Page(items=summaries, total=total, page=page, page_size=size)
 
-    async def get_skill_resource_file(self, version_id: uuid.UUID, path: str) -> Optional[Any]:
+    async def get_skill_resource_file(self, version_id: uuid.UUID, path: str) -> Any | None:
         async with self.session_maker() as session:
             result = await session.execute(
                 select(SkillResource).where(SkillResource.version_id == version_id, SkillResource.path == path)

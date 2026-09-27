@@ -1,6 +1,6 @@
 from .base import BaseStorage
-from .sqlite import SQLiteStorage
-from .pgvector import PgVectorStorage
 from .factory import get_storage
+from .pgvector import PgVectorStorage
+from .sqlite import SQLiteStorage
 
 __all__ = ["BaseStorage", "SQLiteStorage", "PgVectorStorage", "get_storage"]

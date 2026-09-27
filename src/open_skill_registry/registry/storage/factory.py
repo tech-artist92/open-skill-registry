@@ -1,8 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
+
 from open_skill_registry.config import RegistryConfig
 from open_skill_registry.registry.storage.base import BaseStorage
-from open_skill_registry.registry.storage.sqlite import SQLiteStorage
 from open_skill_registry.registry.storage.pgvector import PgVectorStorage
+from open_skill_registry.registry.storage.sqlite import SQLiteStorage
+
 
 def get_storage(config: RegistryConfig, engine: AsyncEngine) -> BaseStorage:
     session_maker = async_sessionmaker(engine, expire_on_commit=False)

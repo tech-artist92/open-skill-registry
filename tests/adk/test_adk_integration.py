@@ -1,7 +1,13 @@
+
 import pytest
-import asyncio
-from typing import Optional
-from open_skill_registry.adk import OpenSkillRegistry, SkillNotFoundError, AuthenticationError, Frontmatter, Skill
+
+from open_skill_registry.adk import (
+    AuthenticationError,
+    Frontmatter,
+    OpenSkillRegistry,
+    Skill,
+    SkillNotFoundError,
+)
 
 # Mocks for testing
 
@@ -37,20 +43,28 @@ def mock_sync_registry():
             if name == "public/error":
                 raise ConnectionError("Unreachable")
             if name == "public/auth":
-                from open_skill_registry.client.exceptions import AuthenticationError as ClientAuthError
+                from open_skill_registry.client.exceptions import (
+                    AuthenticationError as ClientAuthError,
+                )
                 raise ClientAuthError("Unauthorized")
             if name not in self.skills:
-                from open_skill_registry.client.exceptions import SkillNotFoundError as ClientNotFoundError
+                from open_skill_registry.client.exceptions import (
+                    SkillNotFoundError as ClientNotFoundError,
+                )
                 raise ClientNotFoundError(name)
             return self.skills[name]
             
         def get_skill_resource(self, name, resource_path, version=None):
             if name not in self.skills:
-                from open_skill_registry.client.exceptions import SkillNotFoundError as ClientNotFoundError
+                from open_skill_registry.client.exceptions import (
+                    SkillNotFoundError as ClientNotFoundError,
+                )
                 raise ClientNotFoundError(name)
             res = self.skills[name].get("resources", {})
             if resource_path not in res:
-                from open_skill_registry.client.exceptions import NotFoundError as ClientNotFoundError2
+                from open_skill_registry.client.exceptions import (
+                    NotFoundError as ClientNotFoundError2,
+                )
                 raise ClientNotFoundError2(resource_path)
             return res[resource_path]
     return MockSyncRegistry()
@@ -88,20 +102,28 @@ def mock_async_client():
             if name == "public/error":
                 raise ConnectionError("Unreachable")
             if name == "public/auth":
-                from open_skill_registry.client.exceptions import AuthenticationError as ClientAuthError
+                from open_skill_registry.client.exceptions import (
+                    AuthenticationError as ClientAuthError,
+                )
                 raise ClientAuthError("Unauthorized")
             if name not in self.skills:
-                from open_skill_registry.client.exceptions import SkillNotFoundError as ClientNotFoundError
+                from open_skill_registry.client.exceptions import (
+                    SkillNotFoundError as ClientNotFoundError,
+                )
                 raise ClientNotFoundError(name)
             return self.skills[name]
             
         async def get_skill_resource(self, name, resource_path, version=None):
             if name not in self.skills:
-                from open_skill_registry.client.exceptions import SkillNotFoundError as ClientNotFoundError
+                from open_skill_registry.client.exceptions import (
+                    SkillNotFoundError as ClientNotFoundError,
+                )
                 raise ClientNotFoundError(name)
             res = self.skills[name].get("resources", {})
             if resource_path not in res:
-                from open_skill_registry.client.exceptions import NotFoundError as ClientNotFoundError2
+                from open_skill_registry.client.exceptions import (
+                    NotFoundError as ClientNotFoundError2,
+                )
                 raise ClientNotFoundError2(resource_path)
             return res[resource_path]
     return MockAsyncClient()
@@ -164,7 +186,7 @@ def test_get_skill_resource_not_found(mock_sync_registry):
     with pytest.raises(SkillNotFoundError):
         registry.get_skill_resource("missing", "script.py")
     
-    with pytest.raises(Exception):
+    with pytest.raises((SkillNotFoundError, KeyError, RuntimeError)):
         # Could be SkillNotFoundError or NotFoundError
         registry.get_skill_resource("test-skill", "missing.py")
 
@@ -187,6 +209,7 @@ def test_hosted_mode_get_resource(mock_async_client):
     assert res == b"print('hello')"
 
 import httpx
+
 
 def test_hosted_mock_transport_search():
     def handle_request(request):

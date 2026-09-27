@@ -1,8 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from open_skill_registry.server.services.skill_service import SkillService
-from open_skill_registry.server.db.models import SkillVersion
+
+import pytest
+
 from open_skill_registry.models.exceptions import DuplicateVersionError
+from open_skill_registry.server.services.skill_service import SkillService
+
 
 @pytest.mark.asyncio
 async def test_version_inference_explicit_overrides_all():

@@ -1,7 +1,7 @@
 import io
 import zipfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 import typer
@@ -18,8 +18,8 @@ def push_command(
     namespace: str = typer.Option(
         "public", "--namespace", "-n", help="Namespace to publish under"
     ),
-    version: Optional[str] = typer.Option(None, "--version", "-v", help="Explicit version"),
-    slug: Optional[str] = typer.Option(None, "--slug", "-s", help="Explicit slug"),
+    version: str | None = typer.Option(None, "--version", "-v", help="Explicit version"),
+    slug: str | None = typer.Option(None, "--slug", "-s", help="Explicit slug"),
     batch: bool = typer.Option(False, "--batch", help="Batch publish directory"),
 ):
     """Push a skill to the registry."""
@@ -42,10 +42,10 @@ def push_command(
 def _push_single(
     p: Path,
     namespace: str,
-    version: Optional[str],
-    slug: Optional[str],
+    version: str | None,
+    slug: str | None,
     registry_url: str,
-    transport: Optional[Any] = None,
+    transport: Any | None = None,
 ):
     url = f"{registry_url.rstrip('/')}/api/v1/skills/publish"
 

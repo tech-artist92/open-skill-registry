@@ -1,11 +1,11 @@
-from .main import AsyncSkillRegistryClient, SkillRegistryClient
 from .exceptions import (
-    NotFoundError,
-    SkillNotFoundError,
     AuthenticationError,
     DuplicateVersionError,
-    OpenSkillRegistryClientError
+    NotFoundError,
+    OpenSkillRegistryClientError,
+    SkillNotFoundError,
 )
+from .main import AsyncSkillRegistryClient, SkillRegistryClient
 
 __all__ = [
     "AsyncSkillRegistryClient",

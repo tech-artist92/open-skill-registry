@@ -1,10 +1,11 @@
-import pytest
-from unittest.mock import patch, MagicMock, mock_open
-from typer.testing import CliRunner
-from open_skill_registry.cli.main import app
-import json
 import hashlib
-from pathlib import Path
+import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+from typer.testing import CliRunner
+
+from open_skill_registry.cli.main import app
 
 runner = CliRunner()
 
