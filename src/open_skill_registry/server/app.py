@@ -41,10 +41,17 @@ def create_app(config: RegistryConfig | None = None) -> FastAPI:
     app.state.storage = get_storage(config, engine)
     app.state.cache_service = CacheService(config=getattr(config, "cache", None))
 
+    cors_origins = (
+        getattr(config.server, "cors_origins", ["*"])
+        if hasattr(config, "server") and config.server
+        else ["*"]
+    )
+    allow_credentials = "*" not in cors_origins
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=cors_origins,
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )

@@ -129,7 +129,15 @@ class TestCloneRepo:
         clone_repo(spec, target_dir)
 
         mock_run.assert_called_once_with(
-            ["git", "clone", "--depth", "1", "https://github.com/owner/repo.git", str(target_dir)],
+            [
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                "--",
+                "https://github.com/owner/repo.git",
+                str(target_dir),
+            ],
             capture_output=True,
             text=True,
             check=False,
@@ -151,6 +159,7 @@ class TestCloneRepo:
                 "1",
                 "--branch",
                 "v1.0.0",
+                "--",
                 "https://github.com/owner/repo.git",
                 str(target_dir),
             ],
@@ -158,6 +167,13 @@ class TestCloneRepo:
             text=True,
             check=False,
         )
+
+    def test_clone_rejects_leading_dashes(self, tmp_path):
+        target_dir = tmp_path / "repo"
+        with pytest.raises(ValueError, match="cannot start with a dash"):
+            clone_repo(GitRepoSpec(url="--upload-pack=evil"), target_dir)
+        with pytest.raises(ValueError, match="cannot start with a dash"):
+            clone_repo(GitRepoSpec(url="https://github.com/owner/repo.git", ref="--evil-flag"), target_dir)
 
     @patch("open_skill_registry.registry.git_import.subprocess.run")
     def test_clone_failure_raises_git_clone_error(self, mock_run, tmp_path):

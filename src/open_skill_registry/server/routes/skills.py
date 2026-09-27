@@ -86,13 +86,31 @@ async def publish_skill(
     files: dict[str, bytes] = {}
     content = await file.read()
     
+    MAX_ZIP_EXTRACTED_BYTES = 50 * 1024 * 1024  # 50 MB
+    MAX_ZIP_FILES = 1000
+
     if file.filename and file.filename.endswith(".zip"):
         try:
             with zipfile.ZipFile(io.BytesIO(content)) as zf:
-                for name in zf.namelist():
-                    if ".." in name or name.startswith("/"):
+                namelist = zf.namelist()
+                if len(namelist) > MAX_ZIP_FILES:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Zip archive exceeds maximum allowed file count ({MAX_ZIP_FILES})",
+                    )
+
+                total_uncompressed_size = 0
+                for info in zf.infolist():
+                    name = info.filename
+                    if ".." in name or name.startswith(("/", "\\")) or "\\" in name:
                         raise HTTPException(status_code=400, detail="Path traversal detected in zip")
-                    if not zf.getinfo(name).is_dir():
+                    total_uncompressed_size += info.file_size
+                    if total_uncompressed_size > MAX_ZIP_EXTRACTED_BYTES:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Zip archive exceeds maximum allowed uncompressed size (50MB)",
+                        )
+                    if not info.is_dir():
                         files[name] = zf.read(name)
         except zipfile.BadZipFile:
             raise HTTPException(status_code=400, detail="Invalid zip archive")

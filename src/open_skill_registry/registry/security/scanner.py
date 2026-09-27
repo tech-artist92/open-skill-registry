@@ -91,9 +91,15 @@ SECRET_RULES = [
     ),
     (
         "secret-openai-key",
-        re.compile(r"\b(sk-[a-zA-Z0-9]{32,})\b"),
+        re.compile(r"\b(sk-[a-zA-Z0-9_\-]{32,})\b"),
         Severity.CRITICAL,
-        "Leaked OpenAI API secret key detected",
+        "Leaked API secret key detected",
+    ),
+    (
+        "secret-openrouter-key",
+        re.compile(r"\b(sk-or-v1-[a-zA-Z0-9_\-]{32,})\b"),
+        Severity.CRITICAL,
+        "Leaked OpenRouter API key detected",
     ),
 ]
 

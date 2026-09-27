@@ -35,3 +35,15 @@ graphify-out/
 
 .worktrees/
 *.ses
+
+# Environment variables and secrets
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.cert
+*.crt
+
+# Local workspace installation manifest
+.osr-installed.json

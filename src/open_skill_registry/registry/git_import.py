@@ -181,11 +181,14 @@ def parse_git_specifier(
 
 def clone_repo(spec: GitRepoSpec, target_dir: Path) -> None:
     """Clone a Git repository into target_dir using shallow clone."""
+    if spec.url.startswith("-") or (spec.ref and spec.ref.startswith("-")):
+        raise ValueError("Invalid Git repository URL or ref: cannot start with a dash ('-')")
+
     target_dir.parent.mkdir(parents=True, exist_ok=True)
     cmd = ["git", "clone", "--depth", "1"]
     if spec.ref:
         cmd.extend(["--branch", spec.ref])
-    cmd.extend([spec.url, str(target_dir)])
+    cmd.extend(["--", spec.url, str(target_dir)])
 
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
