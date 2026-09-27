@@ -89,6 +89,8 @@ async def publish_skill(
             raise HTTPException(status_code=400, detail="Invalid zip archive")
     else:
         filename = file.filename or "SKILL.md"
+        if filename.endswith((".md", ".markdown")):
+            filename = "SKILL.md"
         files[filename] = content
         
     service = SkillService(db, storage, config)
@@ -125,11 +127,16 @@ async def publish_skill(
 @router.get("/search")
 async def search_skills(
     request: Request,
-    q: str = Query(...),
+    q: Optional[str] = Query(None),
+    query: Optional[str] = Query(None),
     limit: int = Query(10, ge=1, le=100),
     namespace: Optional[str] = Query(None),
     auth: AuthContext = Depends(get_auth_context),
 ):
+    search_q = q or query
+    if not search_q:
+        raise HTTPException(status_code=422, detail="Query parameter 'q' or 'query' is required")
+
     config = getattr(request.app.state, "config", None)
     storage = getattr(request.app.state, "storage", None)
     if not storage:
@@ -143,7 +150,7 @@ async def search_skills(
     )
     search_service = SearchService(storage, config)
     results = await search_service.search(
-        query=q,
+        query=search_q,
         limit=limit,
         namespace=namespace,
         allowed_namespaces=allowed_namespaces,
@@ -421,6 +428,19 @@ async def get_skill_file(
     slug: str,
     version: str,
     path: str = Query(...),
+    auth: AuthContext = Depends(get_auth_context),
+):
+    return await _fetch_file(request, response, namespace, slug, version, path, auth)
+
+
+@router.get("/{namespace}/{slug}/versions/{version}/files/{path:path}")
+async def get_skill_files_path_alias(
+    request: Request,
+    response: Response,
+    namespace: str,
+    slug: str,
+    version: str,
+    path: str,
     auth: AuthContext = Depends(get_auth_context),
 ):
     return await _fetch_file(request, response, namespace, slug, version, path, auth)

@@ -20,14 +20,19 @@ def info(
 ):
     """Get detailed information about a skill."""
     registry_url = (ctx.obj or {}).get("registry_url") or "http://localhost:8080"
+    transport = (ctx.obj or {}).get("transport")
     
     ns, slug = parse_skill_name(skill)
     
+    client_kwargs = {
+        "base_url": registry_url,
+        "api_key": (ctx.obj or {}).get("api_key"),
+    }
+    if transport is not None:
+        client_kwargs["transport"] = transport
+
     try:
-        with SkillRegistryClient(
-            base_url=registry_url,
-            api_key=(ctx.obj or {}).get("api_key")
-        ) as client:
+        with SkillRegistryClient(**client_kwargs) as client:
             if version:
                 data = client.get_version(ns, slug, version)
             else:
@@ -80,5 +85,8 @@ def info(
             if versions:
                 console.print("\n[bold cyan]Versions:[/bold cyan]")
                 for v in versions:
-                    console.print(f"  {v.get('version')} (Created: {v.get('created_at')})")
+                    if isinstance(v, dict):
+                        console.print(f"  {v.get('version')} (Created: {v.get('created_at')})")
+                    else:
+                        console.print(f"  {v}")
 

@@ -23,13 +23,18 @@ def pull(
 ):
     """Pull a skill from the registry to local disk."""
     registry_url = (ctx.obj or {}).get("registry_url") or "http://localhost:8080"
+    transport = (ctx.obj or {}).get("transport")
     ns, slug = parse_skill_name(skill)
 
+    client_kwargs = {
+        "base_url": registry_url,
+        "api_key": (ctx.obj or {}).get("api_key"),
+    }
+    if transport is not None:
+        client_kwargs["transport"] = transport
+
     try:
-        with SkillRegistryClient(
-            base_url=registry_url,
-            api_key=(ctx.obj or {}).get("api_key")
-        ) as client:
+        with SkillRegistryClient(**client_kwargs) as client:
             if not version:
                 if not tag:
                     tag = "latest"
@@ -43,11 +48,15 @@ def pull(
             
             version_info = client.get_version(ns, slug, version)
             manifest = version_info.get("manifest", {})
-            entries = manifest.get("entries", [])
+            entries = manifest.get("files") or manifest.get("entries", [])
             content_hash = manifest.get("content_hash", "unknown")
             
             if output:
-                target_dir = Path(output)
+                p_out = Path(output)
+                if p_out.name != slug or str(output).endswith(("/", "\\")):
+                    target_dir = p_out / slug
+                else:
+                    target_dir = p_out
             else:
                 if Path(".agents").exists():
                     target_dir = Path(".agents/skills") / slug

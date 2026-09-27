@@ -30,13 +30,18 @@ def verify(
 
     if remote:
         registry_url = (ctx.obj or {}).get("registry_url") or "http://localhost:8080"
+        transport = (ctx.obj or {}).get("transport")
         ns, slug = parse_skill_name(remote)
         
+        client_kwargs = {
+            "base_url": registry_url,
+            "api_key": (ctx.obj or {}).get("api_key"),
+        }
+        if transport is not None:
+            client_kwargs["transport"] = transport
+
         try:
-            with SkillRegistryClient(
-                base_url=registry_url,
-                api_key=(ctx.obj or {}).get("api_key")
-            ) as client:
+            with SkillRegistryClient(**client_kwargs) as client:
                 if not version:
                     skill_info = client.get_skill(ns, slug)
                     version = skill_info.get("release_tags", {}).get("latest")
@@ -48,7 +53,7 @@ def verify(
                 
                 version_info = client.get_version(ns, slug, version)
                 manifest = version_info.get("manifest", {})
-                entries = manifest.get("entries", [])
+                entries = manifest.get("files") or manifest.get("entries", [])
                 
                 for entry in entries:
                     path = entry.get("path")
@@ -66,6 +71,7 @@ def verify(
                         console.print(f"[red]Hash mismatch for {path}: expected {expected_hash}, got {computed_hash}[/red]")
                         raise typer.Exit(1)
                         
+                console.print(f"[OK] All {len(entries)} file(s) match release SHA-256 manifest")
                 console.print("[green]All files verified against remote manifest.[/green]")
         except typer.Exit:
             raise
@@ -89,6 +95,7 @@ def verify(
                 raise typer.Exit(code=1)
                 
             manifest = compute_manifest(files)
+            console.print(f"[OK] All {len(files)} file(s) match release SHA-256 manifest")
             console.print("[green]Local package is valid.[/green]")
             for p in sorted(files.keys()):
                 typer.echo(f"  - {p}")

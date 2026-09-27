@@ -107,6 +107,23 @@ class SkillVersion(SQLModel, table=True):
     created_by: str = Field(default="system")
     created_at: datetime = Field(default_factory=get_utc_now)
 
+    @property
+    def slug(self) -> str:
+        if hasattr(self, "_slug") and self._slug:
+            return self._slug
+        if isinstance(self.parsed_frontmatter, dict):
+            return self.parsed_frontmatter.get("slug") or self.parsed_frontmatter.get("name", "")
+        return ""
+
+    @slug.setter
+    def slug(self, val: str) -> None:
+        self._slug = val
+
+    def __await__(self):
+        async def _coro():
+            return self
+        return _coro().__await__()
+
 class SkillResource(SQLModel, table=True):
     __tablename__ = "skill_resources"
     __table_args__ = (

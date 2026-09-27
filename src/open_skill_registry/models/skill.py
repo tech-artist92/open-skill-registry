@@ -48,8 +48,14 @@ class SkillDetail(SkillSummary):
 
     versions: list[str] = Field(default_factory=list)
     tags: dict[str, str] = Field(default_factory=dict)
+    instructions: str = ""
     created_at: datetime
     updated_at: datetime
+
+    def __await__(self):
+        async def _coro():
+            return self
+        return _coro().__await__()
 
 
 class ComplianceSnapshot(BaseModel):

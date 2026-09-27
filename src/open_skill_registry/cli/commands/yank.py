@@ -28,11 +28,16 @@ def yank(
     """Yank a faulty skill version from the registry."""
     registry_url = url or (ctx.obj or {}).get("registry_url") or "http://localhost:8080"
     api_key = (ctx.obj or {}).get("api_key")
+    transport = (ctx.obj or {}).get("transport")
 
     namespace, slug = parse_skill_name(skill)
 
+    client_kwargs = {"base_url": registry_url, "api_key": api_key}
+    if transport is not None:
+        client_kwargs["transport"] = transport
+
     try:
-        with SkillRegistryClient(base_url=registry_url, api_key=api_key) as client:
+        with SkillRegistryClient(**client_kwargs) as client:
             client.yank_version(namespace, slug, version)
             console.print(f"[green]Successfully yanked {namespace}/{slug}@{version}[/green]")
     except Exception as e:

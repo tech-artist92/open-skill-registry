@@ -57,6 +57,7 @@ async def health_check(request: Request, db: AsyncSession = Depends(get_db_sessi
 
     return ResponseEnvelope(
         code=0,
+        message="success",
         data={
             "status": "ok",
             "db": db_status,

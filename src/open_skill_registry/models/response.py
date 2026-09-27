@@ -17,6 +17,17 @@ class ResponseEnvelope(BaseModel, Generic[T]):
     code: int = 200
     meta: dict[str, Any] | None = None
     message: str | None = None
+    msg: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def sync_msg(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            msg_val = data.get("msg") or data.get("message")
+            if msg_val is not None:
+                data["msg"] = msg_val
+                data["message"] = msg_val
+        return data
 
 
 class Page(BaseModel, Generic[T]):

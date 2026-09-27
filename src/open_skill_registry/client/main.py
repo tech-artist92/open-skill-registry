@@ -87,7 +87,7 @@ class AsyncSkillRegistryClient:
         Returns:
             A dictionary containing search results.
         """
-        params = {"query": query, "limit": limit}
+        params = {"q": query, "query": query, "limit": limit}
         if namespace:
             params["namespace"] = namespace
         response = await self._client.get("/api/v1/skills/search", params=params)
@@ -184,7 +184,16 @@ class AsyncSkillRegistryClient:
         Returns:
             File content as bytes.
         """
-        response = await self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}/files/{path}")
+        response = await self._client.get(
+            f"/api/v1/skills/{namespace}/{slug}/versions/{version}/file",
+            params={"path": path},
+        )
+        if response.status_code == 404:
+            fallback = await self._client.get(
+                f"/api/v1/skills/{namespace}/{slug}/versions/{version}/files/{path}"
+            )
+            if fallback.status_code != 404:
+                response = fallback
         return _handle_response(response, expect_json=False)
 
     async def publish(
@@ -341,7 +350,7 @@ class SkillRegistryClient:
         Returns:
             A dictionary containing search results.
         """
-        params = {"query": query, "limit": limit}
+        params = {"q": query, "query": query, "limit": limit}
         if namespace:
             params["namespace"] = namespace
         response = self._client.get("/api/v1/skills/search", params=params)
@@ -438,7 +447,16 @@ class SkillRegistryClient:
         Returns:
             File content as bytes.
         """
-        response = self._client.get(f"/api/v1/skills/{namespace}/{slug}/versions/{version}/files/{path}")
+        response = self._client.get(
+            f"/api/v1/skills/{namespace}/{slug}/versions/{version}/file",
+            params={"path": path},
+        )
+        if response.status_code == 404:
+            fallback = self._client.get(
+                f"/api/v1/skills/{namespace}/{slug}/versions/{version}/files/{path}"
+            )
+            if fallback.status_code != 404:
+                response = fallback
         return _handle_response(response, expect_json=False)
 
     def publish(

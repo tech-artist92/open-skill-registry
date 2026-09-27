@@ -8,10 +8,10 @@ app = typer.Typer(name="osr", help="Open Skill Registry CLI", no_args_is_help=Tr
 
 app.add_typer(init.app, name="init", help="Initialize configuration")
 app.add_typer(serve.app, name="serve", help="Start the FastAPI server")
-app.add_typer(push.app, name="push", help="Push a skill to the registry")
 app.add_typer(namespace.app, name="namespace", help="Manage namespaces")
 
 # Add the functions directly as commands
+app.command(name="push", help="Push a skill to the registry")(push.push_command)
 app.command(name="login", help="Log in to an Open Skill Registry instance")(login.login)
 app.command(name="search", help="Search for skills in the registry")(search.search)
 app.command(name="info", help="Get detailed information about a skill")(info.info)

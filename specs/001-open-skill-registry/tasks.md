@@ -210,9 +210,9 @@
 
 **Purpose**: System integration, documentation verification, and end-to-end quickstart execution
 
-- [ ] T057 [P] Execute and verify the complete `quickstart.md` validation workflow (Section 2 Minimal Setup, Section 3 Embedded Library, Section 4 Hosted Registry, Section 5 CLI, Section 6 Web UI, Section 7 ADK Agent, Section 8 Automated Tests)
-- [ ] T058 [P] Add README and packaging metadata in `pyproject.toml` and project root
-- [ ] T059 Run full test suite with testcontainers (`pytest tests/`) validating unit, integration, contract, and ADK adapter suites
+- [x] T057 [P] Execute and verify the complete `quickstart.md` validation workflow (Section 2 Minimal Setup, Section 3 Embedded Library, Section 4 Hosted Registry, Section 5 CLI, Section 6 Web UI, Section 7 ADK Agent, Section 8 Automated Tests)
+- [x] T058 [P] Add README and packaging metadata in `pyproject.toml` and project root
+- [x] T059 Run full test suite with testcontainers (`pytest tests/`) validating unit, integration, contract, and ADK adapter suites
 
 ---
 

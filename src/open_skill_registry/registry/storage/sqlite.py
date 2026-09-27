@@ -149,13 +149,22 @@ class SQLiteStorage(BaseStorage):
             versions = [r[0] for r in versions_result.all()]
             
             latest_version = ""
+            instructions = ""
             if skill.latest_version_id:
                 latest_res = await session.execute(
-                    select(SkillVersion.version).where(SkillVersion.id == skill.latest_version_id)
+                    select(SkillVersion.version, SkillVersion.instructions).where(SkillVersion.id == skill.latest_version_id)
                 )
-                latest_ver_row = latest_res.scalar_one_or_none()
+                latest_ver_row = latest_res.first()
                 if latest_ver_row:
-                    latest_version = latest_ver_row
+                    latest_version = latest_ver_row[0]
+                    instructions = latest_ver_row[1] or ""
+            elif versions:
+                latest_res = await session.execute(
+                    select(SkillVersion.instructions).where(SkillVersion.skill_id == skill.id).order_by(SkillVersion.created_at.desc())
+                )
+                inst_row = latest_res.scalar_one_or_none()
+                if inst_row:
+                    instructions = inst_row or ""
 
             tags_result = await session.execute(
                 select(ReleaseTag).where(ReleaseTag.skill_id == skill.id)
@@ -175,6 +184,7 @@ class SQLiteStorage(BaseStorage):
                 latest_version=latest_version,
                 download_count=skill.download_count,
                 visibility=skill.visibility,
+                instructions=instructions,
                 versions=versions,
                 tags=tags_map,
                 created_at=skill.created_at,
