@@ -61,27 +61,35 @@ def execute_skill(skill: Any, *args: Any, **kwargs: Any) -> Any:
        - Return formatted instructions.
     6. Fallback: return execution confirmation with skill name and description.
     """
-    # Normalize args into kwargs
+    # Normalize args into kwargs for template formatters or fallback kwargs
+    forward_kwargs = dict(kwargs)
     if args:
         if len(args) == 1 and isinstance(args[0], dict):
-            merged_kwargs = {**args[0], **kwargs}
-            kwargs = merged_kwargs
+            forward_kwargs.update(args[0])
         elif len(args) == 1 and isinstance(args[0], str):
-            kwargs.setdefault("input", args[0])
+            forward_kwargs.setdefault("input", args[0])
         else:
-            kwargs.setdefault("args", list(args))
+            forward_kwargs.setdefault("args", list(args))
 
     # Check for direct callable runner on skill
     for method_name in ("execute", "_execute", "func"):
         method = getattr(skill, method_name, None)
         if callable(method):
-            return method(*args, **kwargs)
+            try:
+                return method(*args, **kwargs)
+            except TypeError:
+                return method(**forward_kwargs)
 
     if isinstance(skill, dict):
         for key in ("func", "execute"):
             fn = skill.get(key)
             if callable(fn):
-                return fn(*args, **kwargs)
+                try:
+                    return fn(*args, **kwargs)
+                except TypeError:
+                    return fn(**forward_kwargs)
+
+    kwargs = forward_kwargs
 
     name, description, instructions, _ = extract_skill_info(skill)
 

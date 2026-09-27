@@ -244,7 +244,8 @@ class OpenAISkillExecutor:
             raw_args = fn_dict.get("arguments", {})
             if isinstance(raw_args, str):
                 try:
-                    args = json.loads(raw_args)
+                    parsed = json.loads(raw_args)
+                    args = parsed if isinstance(parsed, dict) else {"input": parsed}
                 except Exception:
                     args = {"input": raw_args}
             elif isinstance(raw_args, dict):
@@ -256,7 +257,8 @@ class OpenAISkillExecutor:
             raw_args = getattr(fn_obj, "arguments", {})
             if isinstance(raw_args, str):
                 try:
-                    args = json.loads(raw_args)
+                    parsed = json.loads(raw_args)
+                    args = parsed if isinstance(parsed, dict) else {"input": parsed}
                 except Exception:
                     args = {"input": raw_args}
             elif isinstance(raw_args, dict):
@@ -267,7 +269,9 @@ class OpenAISkillExecutor:
                 args = {**arguments, **kwargs}
             elif isinstance(arguments, str):
                 try:
-                    args = json.loads(arguments)
+                    parsed = json.loads(arguments)
+                    args = parsed if isinstance(parsed, dict) else {"input": parsed}
+                    args.update(kwargs)
                 except Exception:
                     args = {"input": arguments, **kwargs}
             else:

@@ -145,7 +145,7 @@ class LangChainSkillTool(_BaseTool if _BaseTool is not object else object):  # t
         exec_kwargs = dict(kwargs)
         if isinstance(tool_input, dict):
             exec_kwargs.update(tool_input)
-        elif isinstance(tool_input, str):
+        elif tool_input is not None:
             exec_kwargs.setdefault("input", tool_input)
 
         result = execute_skill(self.skill, **exec_kwargs)
@@ -168,7 +168,7 @@ class LangChainSkillTool(_BaseTool if _BaseTool is not object else object):  # t
                 exec_kwargs = dict(kwargs)
                 if isinstance(tool_input, dict):
                     exec_kwargs.update(tool_input)
-                elif isinstance(tool_input, str):
+                elif tool_input is not None:
                     exec_kwargs.setdefault("input", tool_input)
                 res = await async_fn(**exec_kwargs)
                 return str(res)
