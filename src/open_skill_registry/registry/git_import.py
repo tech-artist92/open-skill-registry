@@ -207,7 +207,7 @@ def discover_skills_in_dir(repo_dir: Path, subpath: str | None = None) -> list[D
     resolved_repo = repo_dir.resolve()
     if subpath:
         search_root = (resolved_repo / subpath).resolve()
-        if not str(search_root).startswith(str(resolved_repo)):
+        if not search_root.is_relative_to(resolved_repo):
             raise ValueError(f"Invalid subpath traversal: {subpath}")
     else:
         search_root = resolved_repo
@@ -239,7 +239,9 @@ def discover_skills_in_dir(repo_dir: Path, subpath: str | None = None) -> list[D
         # Collect skill files
         files: dict[str, bytes] = {}
         for f in sorted(skill_dir.rglob("*")):
-            if not f.is_file():
+            if not f.is_file() or f.is_symlink():
+                continue
+            if not f.resolve().is_relative_to(skill_dir.resolve()):
                 continue
             rel = f.relative_to(skill_dir)
             if any(
@@ -292,85 +294,43 @@ def import_from_git(
             return []
 
         results: list[ImportResult] = []
-        for skill in discovered:
-            try:
-                version = skill.version
-                content_hash = None
-                pub_slug = skill.slug
-                pub_ns = ns
+        active_client = client
+        created_client = None
+        if active_client is None and registry is None:
+            from open_skill_registry.client.main import SkillRegistryClient
 
-                if client is not None:
-                    if hasattr(client, "publish_skill"):
-                        res = client.publish_skill(
-                            namespace=ns,
-                            slug=skill.slug,
-                            version=version,
-                            files=skill.files,
-                        )
-                    elif hasattr(client, "publish"):
-                        res = client.publish(
-                            namespace=ns,
-                            slug=skill.slug,
-                            version=version,
-                            files=skill.files,
-                        )
-                    else:
-                        raise ValueError(
-                            "Provided client does not have publish or publish_skill method"
-                        )
+            created_client = SkillRegistryClient()
+            created_client.__enter__()
+            active_client = created_client
 
-                    if isinstance(res, dict):
-                        content_hash = res.get("content_hash")
-                        version = res.get("version", version)
-                        pub_slug = res.get("slug", pub_slug)
-                        pub_ns = res.get("namespace", pub_ns)
-                    else:
-                        content_hash = getattr(res, "content_hash", None)
-                        version = getattr(res, "version", version)
-                        pub_slug = getattr(res, "slug", pub_slug)
-                        pub_ns = getattr(res, "namespace", pub_ns)
+        try:
+            for skill in discovered:
+                try:
+                    version = skill.version
+                    content_hash = None
+                    pub_slug = skill.slug
+                    pub_ns = ns
 
-                elif registry is not None:
-                    if hasattr(registry, "publish"):
-                        res = registry.publish(
-                            namespace=ns,
-                            slug=skill.slug,
-                            version=version,
-                            files=skill.files,
-                        )
-                    elif hasattr(registry, "publish_skill"):
-                        res = registry.publish_skill(
-                            namespace=ns,
-                            slug=skill.slug,
-                            version=version,
-                            files=skill.files,
-                        )
-                    else:
-                        raise ValueError(
-                            "Provided registry does not have publish or publish_skill method"
-                        )
+                    if active_client is not None:
+                        if hasattr(active_client, "publish_skill"):
+                            res = active_client.publish_skill(
+                                namespace=ns,
+                                slug=skill.slug,
+                                version=version,
+                                files=skill.files,
+                            )
+                        elif hasattr(active_client, "publish"):
+                            res = active_client.publish(
+                                namespace=ns,
+                                slug=skill.slug,
+                                version=version,
+                                files=skill.files,
+                            )
+                        else:
+                            raise ValueError(
+                                "Provided client does not have publish or publish_skill method"
+                            )
 
-                    if isinstance(res, dict):
-                        content_hash = res.get("content_hash")
-                        version = res.get("version", version)
-                        pub_slug = res.get("slug", pub_slug)
-                        pub_ns = res.get("namespace", pub_ns)
-                    else:
-                        content_hash = getattr(res, "content_hash", None)
-                        version = getattr(res, "version", version)
-                        pub_slug = getattr(res, "slug", pub_slug)
-                        pub_ns = getattr(res, "namespace", pub_ns)
-
-                else:
-                    from open_skill_registry.client.main import SkillRegistryClient
-
-                    with SkillRegistryClient() as default_client:
-                        res = default_client.publish_skill(
-                            namespace=ns,
-                            slug=skill.slug,
-                            version=version,
-                            files=skill.files,
-                        )
                         if isinstance(res, dict):
                             content_hash = res.get("content_hash")
                             version = res.get("version", version)
@@ -382,32 +342,66 @@ def import_from_git(
                             pub_slug = getattr(res, "slug", pub_slug)
                             pub_ns = getattr(res, "namespace", pub_ns)
 
-                results.append(
-                    ImportResult(
-                        namespace=pub_ns,
-                        slug=pub_slug,
-                        version=version,
-                        name=skill.name,
-                        files_count=len(skill.files),
-                        content_hash=content_hash,
-                        success=True,
-                        error=None,
-                        status="published",
+                    elif registry is not None:
+                        if hasattr(registry, "publish"):
+                            res = registry.publish(
+                                namespace=ns,
+                                slug=skill.slug,
+                                version=version,
+                                files=skill.files,
+                            )
+                        elif hasattr(registry, "publish_skill"):
+                            res = registry.publish_skill(
+                                namespace=ns,
+                                slug=skill.slug,
+                                version=version,
+                                files=skill.files,
+                            )
+                        else:
+                            raise ValueError(
+                                "Provided registry does not have publish or publish_skill method"
+                            )
+
+                        if isinstance(res, dict):
+                            content_hash = res.get("content_hash")
+                            version = res.get("version", version)
+                            pub_slug = res.get("slug", pub_slug)
+                            pub_ns = res.get("namespace", pub_ns)
+                        else:
+                            content_hash = getattr(res, "content_hash", None)
+                            version = getattr(res, "version", version)
+                            pub_slug = getattr(res, "slug", pub_slug)
+                            pub_ns = getattr(res, "namespace", pub_ns)
+
+                    results.append(
+                        ImportResult(
+                            namespace=pub_ns,
+                            slug=pub_slug,
+                            version=version,
+                            name=skill.name,
+                            files_count=len(skill.files),
+                            content_hash=content_hash,
+                            success=True,
+                            error=None,
+                            status="published",
+                        )
                     )
-                )
-            except Exception as e:
-                results.append(
-                    ImportResult(
-                        namespace=ns,
-                        slug=skill.slug,
-                        version=skill.version,
-                        name=skill.name,
-                        files_count=len(skill.files),
-                        content_hash=None,
-                        success=False,
-                        error=str(e),
-                        status="failed",
+                except Exception as e:
+                    results.append(
+                        ImportResult(
+                            namespace=ns,
+                            slug=skill.slug,
+                            version=skill.version,
+                            name=skill.name,
+                            files_count=len(skill.files),
+                            content_hash=None,
+                            success=False,
+                            error=str(e),
+                            status="failed",
+                        )
                     )
-                )
+        finally:
+            if created_client is not None:
+                created_client.__exit__(None, None, None)
 
         return results
