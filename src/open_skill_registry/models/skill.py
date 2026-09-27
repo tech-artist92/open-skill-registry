@@ -53,6 +53,7 @@ class SkillDetail(SkillSummary):
     updated_at: datetime
 
     def __await__(self):
+        """Ergonomic bridge enabling awaitable model evaluation in quickstart examples."""
         async def _coro():
             return self
         return _coro().__await__()

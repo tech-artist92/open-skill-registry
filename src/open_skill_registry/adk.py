@@ -14,6 +14,7 @@ from .client.main import AsyncSkillRegistryClient, SkillRegistryClient
 from .registry.main import AsyncSkillRegistry, SkillRegistry
 
 logger = logging.getLogger(__name__)
+_ADK_THREAD_POOL: Optional[Any] = None
 
 
 class SkillNotFoundError(Exception):
@@ -166,8 +167,10 @@ class OpenSkillRegistry:
 
         import concurrent.futures
 
-        with concurrent.futures.ThreadPoolExecutor(1) as pool:
-            return pool.submit(asyncio.run, call).result()
+        global _ADK_THREAD_POOL
+        if _ADK_THREAD_POOL is None:
+            _ADK_THREAD_POOL = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+        return _ADK_THREAD_POOL.submit(asyncio.run, call).result()
 
     def _normalize_name(self, name: str) -> str:
         """Normalize a skill name, ensuring it has a namespace."""
