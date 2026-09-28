@@ -1,13 +1,13 @@
 # Open Skill Registry (OSR)
 
-> The open-source, cloud-agnostic alternative to Google Cloud Skill Registry (https://adk.dev/integrations/skills-registry/). A universal skill registry ecosystem for discovering, distributing, securing, and dynamically loading AI agent skills on-demand with semantic vector search, native Model Context Protocol (SEP-2640) support, Google ADK 2.9.2+ drop-in integration, and zero-dependency Python framework bridges.
+> A universal, open-source skill registry ecosystem for discovering, distributing, securing, and dynamically loading AI agent skills on-demand with semantic vector search, native Model Context Protocol (SEP-2640) support, Google ADK 2.9.2+ integration, and zero-dependency Python framework bridges.
 
 ## Overview
-Open Skill Registry (`open-skill-registry`) is the open-source alternative to proprietary skill registries like Google Cloud Skill Registry. Instead of bloating agent system prompts with statically hardcoded tools, OSR enables agents to dynamically discover and retrieve only relevant skills on-demand using semantic vector search—eliminating context window waste and prompt confusion. It runs fully offline in-process (embedded SQLite/ONNX) or as an enterprise microservice (PostgreSQL/pgvector/FastAPI).
+Open Skill Registry (`open-skill-registry`) is an open-source, self-hosted skill registry for AI agents. Instead of bloating agent system prompts with statically hardcoded tools, OSR enables agents to dynamically discover and retrieve only relevant skills on-demand using semantic vector search—eliminating context window waste and prompt confusion. It runs fully offline in-process (embedded SQLite/ONNX) or as an enterprise microservice (PostgreSQL/pgvector/FastAPI).
 
 - **GitHub Repository**: https://github.com/tech-artist92/open-skill-registry
 - **License**: Apache-2.0
-- **Supported Frameworks**: Google ADK (2.9.2+ drop-in), LangChain, OpenAI Tool Calling, CrewAI, Model Context Protocol (MCP), Cursor, Claude Desktop
+- **Supported Frameworks**: Google ADK (2.9.2+), LangChain, OpenAI Tool Calling, CrewAI, Model Context Protocol (MCP), Cursor, Claude Desktop
 
 ---
 

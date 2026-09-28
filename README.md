@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>The Open-Source, Cloud-Agnostic Skill Registry for AI Agents</strong><br>
-  <em>The open-source alternative to <a href="https://adk.dev/integrations/skills-registry/">Google Cloud Skill Registry</a>.<br>Dynamically discover, version, secure, and load skills on-demand across Google ADK, LangChain, OpenAI, CrewAI, and MCP.</em>
+  <em>Dynamically discover, version, secure, and load skills on-demand across Google ADK, LangChain, OpenAI, CrewAI, and MCP.</em>
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@ Without a skill registry, developers are forced to statically hardcode dozens or
 - 🔒 **Siloed & Unshared Tools**: Skills are copy-pasted across repositories without centralized versioning, security verification, or team governance.
 
 ### The Solution: Dynamic On-Demand Skill Discovery
-As highlighted in the [Google ADK Skill Registry Architecture](https://adk.dev/integrations/skills-registry/), a **Skill Registry** serves as a centralized, searchable catalog. 
+A **Skill Registry** solves this by serving as a centralized, searchable catalog. 
 
 Instead of pre-loading everything, the agent **dynamically searches the registry using semantic vector search and loads only the specific skills needed for the user's immediate task**.
 
@@ -51,23 +51,23 @@ flowchart LR
 
 ---
 
-## 🔓 Open-Source Alternative to Google Cloud Skill Registry
+## 🔓 Open-Source & Self-Hosted vs. Proprietary Cloud Registries
 
-Google introduced the [Google Cloud Skill Registry](https://adk.dev/integrations/skills-registry/) on Vertex AI / Agent Platform for Google ADK. However, Google's registry is **closed-source, locked to Google Cloud, requires a GCP Project with active billing, and mandates outbound internet connectivity to Vertex AI endpoints**.
+Proprietary cloud skill registries are closed-source, locked to specific cloud vendors, require continuous billing accounts, and mandate outbound internet connectivity to vendor infrastructure.
 
 **Open Skill Registry (OSR)** is the **100% open-source, self-hosted, cloud-agnostic alternative**:
 
-| Capability | Google Cloud Skill Registry (`adk.dev`) | Open Skill Registry (OSR) |
+| Capability | Proprietary Cloud Registries | Open Skill Registry (OSR) |
 | :--- | :--- | :--- |
-| **License** | Proprietary / Closed Source | **Apache 2.0 (100% Open Source)** |
-| **Cloud Dependency** | Requires Google Cloud Project & Vertex AI | **Zero Cloud Lock-in** (Run anywhere) |
-| **Cost & Billing** | GCP API & Vertex AI usage charges | **Free & Open Source** |
-| **Offline / Embedded Mode** | ❌ Not supported (requires Vertex AI connection) | ✅ **Full In-Process Mode** (SQLite + local ONNX embeddings) |
-| **Framework Ecosystem** | Google ADK only | **Google ADK, LangChain, OpenAI, CrewAI, MCP (Cursor/Claude)** |
-| **Multi-Tenancy** | Flat project scope (requires separate GCP projects) | **First-Class Namespaces & Scopes** (`team-a/`, `finance/`, `public/`) |
-| **API Key Scoping** | GCP Service Accounts | **Namespace-Scoped API Keys with Zero Data Leakage** |
-| **Security Scanning** | Basic Cloud IAM | **Built-in Scanner** (Prompt injection, secret leakage, shell/AST analysis) |
-| **Deployment Options** | Hosted on Google Cloud only | **Embedded Library**, **FastAPI Microservice**, **Docker Compose** |
+| **License** | Closed Source / Proprietary | **Apache 2.0 (100% Open Source)** |
+| **Cloud Dependency** | Locked to specific cloud provider & billing | **Zero Cloud Lock-in** (Run anywhere) |
+| **Cost & Billing** | Usage-based cloud pricing & vendor billing | **Free & Open Source** |
+| **Offline / Embedded Mode** | ❌ Not supported (requires cloud connection) | ✅ **Full In-Process Mode** (SQLite + local ONNX embeddings) |
+| **Framework Ecosystem** | Single vendor framework | **Google ADK, LangChain, OpenAI, CrewAI, MCP (Cursor/Claude)** |
+| **Multi-Tenancy** | Flat project scope (requires separate cloud accounts) | **First-Class Namespaces & Scopes** (`team-a/`, `finance/`, `public/`) |
+| **API Key Scoping** | Cloud vendor IAM | **Namespace-Scoped API Keys with Zero Data Leakage** |
+| **Security Scanning** | Basic IAM checks | **Built-in Scanner** (Prompt injection, secret leakage, shell/AST analysis) |
+| **Deployment Options** | Hosted only on vendor cloud | **Embedded Library**, **FastAPI Microservice**, **Docker Compose** |
 
 ---
 
@@ -122,8 +122,8 @@ Add to your `claude_desktop_config.json` or Cursor MCP settings:
 
 ## 🛠️ Python Framework Integrations
 
-### 1. Google ADK Integration (Drop-in Replacement for `GCPSkillRegistry`)
-Replace Google Cloud's proprietary registry in 3 lines of code:
+### 1. Google ADK Integration
+Seamlessly connect with Google ADK in 3 lines of code:
 
 ```python
 import asyncio
